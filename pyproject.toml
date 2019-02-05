@@ -6,7 +6,7 @@ readme = "README.md"
 authors = ["Timothy Corbett-Clark <timothy.corbettclark@gmail.com>"]
 license = "MIT"
 long_description_content_type = "text/markdown"
-keywords = ["development", "copying", "replication", "synchronisation", "sync", "files"]
+keywords = ["encapsia", "eSource", "EDC", "Clinical Trials"]
 homepage = "https://github.com/tcorbettclark/encapsia-api"
 
 [tool.poetry.dependencies]
