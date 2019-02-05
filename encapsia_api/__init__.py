@@ -1,1 +1,1 @@
-from encapsiaapi.rest import EncapsiaApi, EncapsiaApiError  # NOQA
+from encapsia_api.rest import EncapsiaApi, EncapsiaApiError  # NOQA
