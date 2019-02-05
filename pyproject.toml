@@ -2,11 +2,12 @@
 name = "encapsia-api"
 version = "0.1.0"
 description = "Client API for talking to an Encapsia system."
+readme = "README.md"
 authors = ["Timothy Corbett-Clark <timothy.corbettclark@gmail.com>"]
 license = "MIT"
 long_description_content_type = "text/markdown"
 keywords = ["development", "copying", "replication", "synchronisation", "sync", "files"]
-homepage = "https://github.com/tcorbettclark/file-replicator"
+homepage = "https://github.com/tcorbettclark/encapsia-api"
 
 [tool.poetry.dependencies]
 python = "^3.6"
