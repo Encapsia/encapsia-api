@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "encapsia-api"
-version = "0.1.1"
+version = "0.1.2"
 description = "Client API for talking to an Encapsia system."
 readme = "README.md"
 authors = ["Timothy Corbett-Clark <timothy.corbettclark@gmail.com>"]
