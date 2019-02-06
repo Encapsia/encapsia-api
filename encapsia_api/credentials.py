@@ -25,11 +25,12 @@ class CredentialsStore:
         self._store_timestamp = self.CREDENTIALS_STORE.stat().st_mtime
 
     def _get(self, label):
-        return self._store.get(label)
+        return self._store[label]
 
     def get(self, label):
         self._refresh()
-        return self._get(label)
+        d = self._get(label)
+        return d["host"], d["token"]
 
     def _set(self, label, host, token):
         self._store[label] = {"host": host, "token": token}
