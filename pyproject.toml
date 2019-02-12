@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "encapsia-api"
-version = "0.1.7"
+version = "0.1.8"
 description = "Client API for talking to an Encapsia system."
 readme = "README.md"
 authors = ["Timothy Corbett-Clark <timothy.corbettclark@gmail.com>"]
@@ -11,7 +11,7 @@ homepage = "https://github.com/tcorbettclark/encapsia-api"
 
 [tool.poetry.dependencies]
 python = "^3.6"
-requests = {version = "^2.21",extras = ["security"]}
+requests = {version = "^2.20",extras = ["security"]}
 toml = "^0.10.0"
 
 [tool.poetry.dev-dependencies]
