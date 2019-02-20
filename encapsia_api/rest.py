@@ -5,6 +5,8 @@ import uuid
 
 import requests
 
+import encapsia_api
+
 
 class EncapsiaApiError(RuntimeError):
     pass
@@ -37,6 +39,7 @@ class Base:
         headers = {
             "Accept": "application/json",
             "Authorization": "Bearer {}".format(self.token),
+            "User-Agent": f"encapsia-api/{encapsia_api.__version__}",
         }
         if json:
             headers["Content-type"] = "application/json"
