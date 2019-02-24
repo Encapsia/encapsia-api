@@ -401,26 +401,30 @@ class UserMixin:
         self.delete(("users", email))
 
     def get_all_users(self):
+        """Return raw json of all users."""
         return self.get("users")["result"]["users"]
 
     def get_all_roles(self):
+        """Return raw json of all roles."""
         return self.get("roles")["result"]["roles"]
 
     def get_super_users(self):
+        """Yield namedtuples of superusers."""
         SuperUser = collections.namedtuple("SuperUser", "email first_name last_name")
-        for user in self.get_users():
+        for user in self.get_all_users():
             if user["role"] == "Superuser":
                 yield SuperUser(user["email"], user["first_name"], user["last_name"])
 
     def get_system_users(self):
+        """Yield namedtuples of system users."""
         users = [
             user
-            for user in self.get("users")["result"]["users"]
+            for user in self.get_all_users()
             if user["email"].startswith("system@")
         ]
         capabilities = {
             role["name"]: role["capabilities"]
-            for role in self.get("roles")["result"]["roles"]
+            for role in self.get_all_roles()
         }
         SystemUser = collections.namedtuple(
             "SystemUser", "email description capabilities"
