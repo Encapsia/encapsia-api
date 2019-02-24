@@ -348,7 +348,7 @@ class ConfigMixin:
         self.delete(("config", key))
 
 
-class SystemUserMixin:
+class UserMixin:
     def add_system_user(self, description, capabilities):
         """Add system user and system role for given description and capabilities."""
         description = description.capitalize()
@@ -374,6 +374,43 @@ class SystemUserMixin:
                 }
             ],
         )
+
+    def add_super_user(self, email, first_name, last_name):
+        """Add a superuser and superuser role."""
+        self.post(
+            "roles",
+            json=[
+                {"name": "Superuser", "alias": "Superuser", "capabilities": ["superuser"]}
+            ],
+        )
+        self.post(
+            "users",
+            json=[
+                {
+                    "email": email,
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "role": "Superuser",
+                    "enabled": True,
+                    "is_site_user": False,
+                }
+            ],
+        )
+
+    def delete_user(self, email):
+        self.delete(("users", email))
+
+    def get_all_users(self):
+        return self.get("users")["result"]["users"]
+
+    def get_all_roles(self):
+        return self.get("roles")["result"]["roles"]
+
+    def get_super_users(self):
+        SuperUser = collections.namedtuple("SuperUser", "email first_name last_name")
+        for user in self.get_users():
+            if user["role"] == "Superuser":
+                yield SuperUser(user["email"], user["first_name"], user["last_name"])
 
     def get_system_users(self):
         users = [
@@ -403,7 +440,7 @@ class EncapsiaApi(
     TaskMixin,
     DbCtlMixin,
     ConfigMixin,
-    SystemUserMixin,
+    UserMixin,
 ):
 
     """REST API access to an Encapsia server."""
