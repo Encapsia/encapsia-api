@@ -30,15 +30,17 @@ class CredentialsStore:
     def get(self, label):
         self._refresh()
         d = self._get(label)
-        return d["host"], d["token"]
+        return d["url"], d["token"]
 
-    def _set(self, label, host, token):
-        self._store[label] = {"host": host, "token": token}
+    def _set(self, label, url, token):
+        if not url.startswith("http"):
+            url = f"https://{url}"
+        self._store[label] = {"url": url, "token": token}
         self._save()
 
-    def set(self, label, host, token):
+    def set(self, label, url, token):
         self._refresh()
-        self._set(label, host, token)
+        self._set(label, url, token)
 
     def remove(self, label):
         self._refresh()

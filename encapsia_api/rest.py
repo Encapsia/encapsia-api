@@ -16,7 +16,7 @@ class Base:
     def __init__(self, url, token, version="v1"):
         """Initialize with server URL (e.g. https://myserver.encapsia.com)."""
         if not url.startswith("http"):
-            url = "https://{}".format(url)
+            url = f"https://{url}"
         self.url = url.rstrip("/")
         self.token = token
         self.version = version
