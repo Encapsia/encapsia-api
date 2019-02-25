@@ -1,6 +1,9 @@
+import os
 from pathlib import Path
 
 import toml
+
+import encapsia_api
 
 
 class CredentialsStore:
@@ -47,3 +50,29 @@ class CredentialsStore:
         if label in self._store:
             del self._store[label]
         self._save()
+
+
+def _get_env_var(name):
+    try:
+        return os.environ[name]
+    except KeyError:
+        raise encapsia_api.EncapsiaApiError(
+            f"Environment variable {name} does not exist!"
+        )
+
+
+def discover_credentials(host=None):
+    """Return (url, token) or raise EncapsiaApiError."""
+    if not host:
+        host = os.environ.get("ENCAPSIA_HOST")
+    if host:
+        store = CredentialsStore()
+        try:
+            url, token = store.get(host)
+        except KeyError:
+            raise encapsia_api.EncapsiaApiError(
+                f"Cannot find entry for '{host}' in encapsia credentials file."
+            )
+    else:
+        url, token = _get_env_var("ENCAPSIA_URL"), _get_env_var("ENCAPSIA_TOKEN")
+    return url, token

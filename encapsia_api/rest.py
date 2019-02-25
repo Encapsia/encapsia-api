@@ -8,10 +8,6 @@ import requests
 import encapsia_api
 
 
-class EncapsiaApiError(RuntimeError):
-    pass
-
-
 class Base:
     def __init__(self, url, token, version="v1"):
         """Initialize with server URL (e.g. https://myserver.encapsia.com)."""
@@ -65,7 +61,7 @@ class Base:
             allow_redirects=False,
         )
         if response.status_code not in expected_codes:
-            raise EncapsiaApiError(
+            raise encapsia_api.EncapsiaApiError(
                 "{} {}\nFull response:\n{}".format(
                     response.status_code,
                     response.reason,
@@ -75,7 +71,7 @@ class Base:
         if return_json:
             answer = response.json()
             if check_json_status and answer["status"] != "ok":
-                raise EncapsiaApiError(response.text)
+                raise encapsia_api.EncapsiaApiError(response.text)
             return answer
         else:
             return response
@@ -176,7 +172,7 @@ class BlobsMixin:
         elif response.status_code in (302, 404):
             return None
         else:
-            raise EncapsiaApiError(
+            raise encapsia_api.EncapsiaApiError(
                 "Unable to download blob {}: {}".format(blob_id, response.status_code)
             )
 
@@ -257,7 +253,7 @@ class TaskMixin:
             if task_status == "finished":
                 return task_result
             elif task_status == "failed":
-                raise EncapsiaApiError(rest_api_result)
+                raise encapsia_api.EncapsiaApiError(rest_api_result)
             else:
                 return NoResultYet
 
@@ -288,7 +284,7 @@ class DbCtlMixin:
             if action_status == "finished":
                 return action_result
             elif action_status == "failed":
-                raise EncapsiaApiError(rest_api_result)
+                raise encapsia_api.EncapsiaApiError(rest_api_result)
             else:
                 return NoResultYet
 
@@ -300,7 +296,7 @@ class DbCtlMixin:
         url = "/".join([self.url, self.version, "dbctl/data", handle])
         response = requests.get(url, headers=headers, verify=True, stream=True)
         if response.status_code != 200:
-            raise EncapsiaApiError(
+            raise encapsia_api.EncapsiaApiError(
                 "{} {}".format(response.status_code, response.reason)
             )
 
@@ -332,7 +328,7 @@ class ConfigMixin:
         """Return server configuration value for given key."""
         try:
             return self.get(("config", key))["result"][key]
-        except EncapsiaApiError:
+        except encapsia_api.EncapsiaApiError:
             raise KeyError(key)
 
     def set_config(self, key, value):
@@ -380,7 +376,11 @@ class UserMixin:
         self.post(
             "roles",
             json=[
-                {"name": "Superuser", "alias": "Superuser", "capabilities": ["superuser"]}
+                {
+                    "name": "Superuser",
+                    "alias": "Superuser",
+                    "capabilities": ["superuser"],
+                }
             ],
         )
         self.post(
@@ -418,13 +418,10 @@ class UserMixin:
     def get_system_users(self):
         """Yield namedtuples of system users."""
         users = [
-            user
-            for user in self.get_all_users()
-            if user["email"].startswith("system@")
+            user for user in self.get_all_users() if user["email"].startswith("system@")
         ]
         capabilities = {
-            role["name"]: role["capabilities"]
-            for role in self.get_all_roles()
+            role["name"]: role["capabilities"] for role in self.get_all_roles()
         }
         SystemUser = collections.namedtuple(
             "SystemUser", "email description capabilities"
