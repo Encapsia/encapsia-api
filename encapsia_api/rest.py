@@ -3,9 +3,8 @@ import mimetypes
 import tempfile
 import uuid
 
-import requests
-
 import encapsia_api
+import requests
 
 
 class Base:
@@ -277,7 +276,7 @@ class DbCtlMixin:
             pass
 
         def get_result():
-            reply = self.get(("dbctl", "action", action_id))
+            reply = self.get(("dbctl", "action", name, action_id))
             rest_api_result = reply["result"]
             action_status = rest_api_result["status"]
             action_result = rest_api_result["result"]
@@ -301,7 +300,7 @@ class DbCtlMixin:
             )
 
         if filename is None:
-            fd, filename = tempfile.mkstemp()
+            _, filename = tempfile.mkstemp()
         with open(filename, "wb") as f:
             for chunk in response.iter_content(chunk_size=1024):
                 f.write(chunk)
