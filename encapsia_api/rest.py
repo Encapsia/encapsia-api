@@ -3,8 +3,9 @@ import mimetypes
 import tempfile
 import uuid
 
-import encapsia_api
 import requests
+
+import encapsia_api
 
 
 class Base:
