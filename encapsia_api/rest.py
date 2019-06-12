@@ -1,5 +1,6 @@
 import collections
 import mimetypes
+import re
 import tempfile
 import uuid
 
@@ -223,6 +224,15 @@ class LoginMixin:
         return answer["result"]["token"]
 
 
+class FileDownloadResponse:
+    """Wrapper around a task responding with a file to download."""
+
+    def __init__(self, content, mime_type, filename=None):
+        self.content = content
+        self.filename = filename
+        self.mime_type = mime_type
+
+
 class TaskMixin:
     def run_task(self, namespace, function, params, data=None):
         """Run task and return a means to poll for the result.
@@ -246,7 +256,28 @@ class TaskMixin:
             pass
 
         def get_task_result():
-            reply = self.get(("tasks", namespace, task_id))
+            response = self.call_api(
+                "get",
+                ("tasks", namespace, task_id),
+            )
+            content_disposition = response.headers.get("Content-Disposition")
+            if content_disposition and content_disposition.startswith("attachment"):
+                # we were sent a file to download
+                filename = None
+                filename_re = r'attachment\s*;\s*filename\s*=\s*"(.+)"\s*$'
+                m = re.search(filename_re, content_disposition)
+                if m:
+                    filename = m.group(1)
+
+                return FileDownloadResponse(
+                    response.content,
+                    response.headers.get("Content-Type"),
+                    filename
+                )
+            # otherwise we should have received a json
+            reply = response.json()
+            if reply["status"] != "ok":
+                raise encapsia_api.EncapsiaApiError(response.text)
             rest_api_result = reply["result"]
             task_status = rest_api_result["status"]
             task_result = rest_api_result["result"]
