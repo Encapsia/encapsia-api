@@ -9,10 +9,14 @@ class PackageMaker:
 
     """Generic maker of packages, intended to be used as a context manager."""
 
-    def __init__(self, name, **kwargs):
+    def __init__(
+        self, name, description="", version="0.0.1", created_by="unknown@encapsia.com"
+    ):
         self.directory = pathlib.Path(tempfile.mkdtemp())
         self._files = []
-        self._add_manifest(name=name, **kwargs)
+        self._add_manifest(
+            name=name, description=description, version=version, created_by=created_by
+        )
 
     def __enter__(self):
         return self
@@ -22,15 +26,9 @@ class PackageMaker:
 
     def _add_manifest(self, **kwargs):
         self._files.append("package.toml")
-        data = dict(
-            name=kwargs["name"],
-            description=kwargs.get("description"),
-            version=kwargs.get("version", "0.0.1"),
-            created_by=kwargs.get("created_by", "unknown@encapsia.com"),
-        )
         filename = self.directory / "package.toml"
         with filename.open("w") as f:
-            toml.dump(data, f)
+            toml.dump(kwargs, f)
 
     def read_manifest(self):
         """Return the manifest as a dictionary."""
