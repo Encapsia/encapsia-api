@@ -256,10 +256,7 @@ class TaskMixin:
             pass
 
         def get_task_result():
-            response = self.call_api(
-                "get",
-                ("tasks", namespace, task_id),
-            )
+            response = self.call_api("get", ("tasks", namespace, task_id))
             content_disposition = response.headers.get("Content-Disposition")
             if content_disposition and content_disposition.startswith("attachment"):
                 # we were sent a file to download
@@ -270,9 +267,7 @@ class TaskMixin:
                     filename = m.group(1)
 
                 return FileDownloadResponse(
-                    response.content,
-                    response.headers.get("Content-Type"),
-                    filename
+                    response.content, response.headers.get("Content-Type"), filename
                 )
             # otherwise we should have received a json
             reply = response.json()
