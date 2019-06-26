@@ -286,6 +286,47 @@ class TaskMixin:
         return get_task_result, NoResultYet
 
 
+class ViewMixin:
+    def run_view(
+        self,
+        namespace,
+        function,
+        view_args=[],
+        view_opts={},
+        upload=None,
+        use_post=False
+    ):
+        """...
+        """
+
+        extra_headers = None
+        if upload:
+            extra_headers = {"Content-Type": "text/plain"}
+
+        response = self.call_api(
+            "post" if use_post else "get",
+            ("views", namespace, function) + tuple(view_args),
+            return_json=False,
+            params=view_opts,
+            extra_headers=extra_headers,
+            data=upload,
+        )
+        content_disposition = response.headers.get("Content-Disposition")
+        if content_disposition and content_disposition.startswith("attachment"):
+            # we were sent a file to download
+            filename = None
+            filename_re = r'attachment\s*;\s*filename\s*=\s*"(.+)"\s*$'
+            m = re.search(filename_re, content_disposition)
+            if m:
+                filename = m.group(1)
+
+            return FileDownloadResponse(
+                response.content, response.headers.get("Content-Type"), filename
+            )
+        # otherwise we have a normal response
+        return response.text
+
+
 class DbCtlMixin:
     def dbctl_action(self, name, params):
         """Request a Database control action.
@@ -465,6 +506,7 @@ class EncapsiaApi(
     BlobsMixin,
     LoginMixin,
     TaskMixin,
+    ViewMixin,
     DbCtlMixin,
     ConfigMixin,
     UserMixin,
