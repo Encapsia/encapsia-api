@@ -296,7 +296,17 @@ class ViewMixin:
         upload=None,
         use_post=False
     ):
-        """...
+        """Run a view function and return its result.
+
+        In accordance with the API, view_args will be passed as path segments
+        while view_opts will be passed as query arguments in the URL.
+
+        To use a POST instead of get, pass use_post=True.
+
+        Data can be uploaded passing it to the upload parameter.
+
+        If the view function returns as direct download via nginx, wrap the result
+        into a FileDownloadResponse object.
         """
 
         extra_headers = None
