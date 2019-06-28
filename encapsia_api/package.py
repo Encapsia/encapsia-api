@@ -48,21 +48,21 @@ class PackageMaker:
     def add_file(self, name, data):
         """Add a file to the package of given name containing given data.
 
-        data should be a string object.
+        ``data`` should be a string object.
         """
         self._add_file(name, (data, ), "t")
 
     def add_file_from_bytes(self, name, data):
         """Add a file to the package of given name containing given data.
 
-        data should be a bytes object.
+        ``data`` should be a bytes object.
         """
         self._add_file(name, (data, ), "b")
 
     def add_file_from_chunks(self, name, chunks, mode=None):
-        """Add a file to the package of given name containing given data.
+        """Add a file to the package of given name containing given data in chunks.
 
-        data should be an iterable returning chunks of the file's data.
+        ``chunks`` should be an iterable returning chunks of the file's data.
         """
         if mode not in ("t", "b"):
             raise ValueError(
