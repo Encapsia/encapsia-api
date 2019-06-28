@@ -2,6 +2,7 @@ import pathlib
 import shutil
 import tarfile
 import tempfile
+import types
 
 import toml
 
@@ -35,13 +36,30 @@ class PackageMaker:
         """Return the manifest as a dictionary."""
         return toml.load(self.directory / "package.toml")
 
-    def add_file(self, name, data):
+    def add_file(self, name, data_source, mode=None):
         """Add a file to the package of given name containing given data."""
         self._files.append(name)
         filename = self.directory / name
         filename.parent.mkdir(parents=True, exist_ok=True)
-        with filename.open("w") as f:
-            f.write(data)
+        if isinstance(data_source, types.GeneratorType):
+            if mode is None:
+                raise ValueError(
+                    "Must provide write mode (t or b) suitable for "
+                    "data returned by data_source"
+                )
+            chunks = data_source
+        else:
+            if isinstance(data_source, str):
+                mode = "t"
+            elif isinstance(data_source, bytes):
+                mode = "b"
+            else:
+                type_ = type(data_source).__name__
+                raise ValueError(f"Don't know how to write data of type {type_}")
+            chunks = (data_source, )
+        with filename.open(f"w{mode}") as f:
+            for chunk in chunks:
+                f.write(chunk)
 
     def make_package(self, directory=pathlib.Path("/tmp/ice")):
         """Return .tar.gz of newly created package in given directory."""
