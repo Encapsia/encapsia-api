@@ -6,6 +6,7 @@ class EncapsiaApiError(RuntimeError):  # NOQA
     pass
 
 
-from encapsia_api.credentials import CredentialsStore, discover_credentials  # NOQA
+from encapsia_api.credentials import CredentialsStore  # NOQA
+from encapsia_api.credentials import discover_credentials  # NOQA
 from encapsia_api.package import PackageMaker  # NOQA
 from encapsia_api.rest import EncapsiaApi  # NOQA
