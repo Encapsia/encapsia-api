@@ -2,7 +2,6 @@ import pathlib
 import shutil
 import tarfile
 import tempfile
-import types
 
 import toml
 
@@ -50,14 +49,14 @@ class PackageMaker:
 
         ``data`` should be a string object.
         """
-        self._add_file(name, (data, ), "t")
+        self._add_file(name, (data,), "t")
 
     def add_file_from_bytes(self, name, data):
         """Add a file to the package of given name containing given data.
 
         ``data`` should be a bytes object.
         """
-        self._add_file(name, (data, ), "b")
+        self._add_file(name, (data,), "b")
 
     def add_file_from_chunks(self, name, chunks, mode=None):
         """Add a file to the package of given name containing given data in chunks.
