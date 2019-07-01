@@ -2,6 +2,7 @@ import pathlib
 import shutil
 import tarfile
 import tempfile
+from typing import Iterable
 
 import toml
 
@@ -35,40 +36,29 @@ class PackageMaker:
         """Return the manifest as a dictionary."""
         return toml.load(self.directory / "package.toml")
 
-    def _add_file(self, name, chunks, mode):
-        """Add a file to the package of given name containing given data."""
+    def _add_file(self, name: str, iterable: Iterable[bytes]):
         self._files.append(name)
         filename = self.directory / name
         filename.parent.mkdir(parents=True, exist_ok=True)
-        with filename.open(f"w{mode}") as f:
-            for chunk in chunks:
-                f.write(chunk)
+        with filename.open("wb") as f:
+            for data in iterable:
+                f.write(data)
 
-    def add_file(self, name, data):
-        """Add a file to the package of given name containing given data.
+    def add_file_from_string(self, name: str, data: str):
+        """Add a file of given name from string data. """
+        self._add_file(name, (data.encode(),))
 
-        ``data`` should be a string object.
-        """
-        self._add_file(name, (data,), "t")
+    def add_file_from_bytes(self, name: str, data: bytes):
+        """Add a file of given name from bytes data."""
+        self._add_file(name, (data,))
 
-    def add_file_from_bytes(self, name, data):
-        """Add a file to the package of given name containing given data.
+    def add_file_from_string_iterable(self, name: str, iterable: Iterable[str]):
+        """Add a file of given name from bytes iterable."""
+        self._add_file(name, (data.encode() for data in iterable))
 
-        ``data`` should be a bytes object.
-        """
-        self._add_file(name, (data,), "b")
-
-    def add_file_from_chunks(self, name, chunks, mode=None):
-        """Add a file to the package of given name containing given data in chunks.
-
-        ``chunks`` should be an iterable returning chunks of the file's data.
-        """
-        if mode not in ("t", "b"):
-            raise ValueError(
-                "Must provide write mode (t or b) suitable for "
-                "data returned by data_source"
-            )
-        self._add_file(name, chunks, mode)
+    def add_file_from_bytes_iterable(self, name: str, iterable: Iterable[bytes]):
+        """Add a file of given name from bytes iterable."""
+        self._add_file(name, iterable)
 
     def make_package(self, directory=pathlib.Path("/tmp/ice")):
         """Return .tar.gz of newly created package in given directory."""
