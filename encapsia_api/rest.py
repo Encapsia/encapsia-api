@@ -2,7 +2,6 @@ import collections
 import json
 import mimetypes
 import pathlib
-import shutil
 import tempfile
 import uuid
 
@@ -11,6 +10,31 @@ import requests
 import encapsia_api
 
 __all__ = ["EncapsiaApi", "FileDownloadResponse"]
+
+
+def _stream_response_to_file(response, filename):
+    # NB Using shutil.copyfileobj is an attractive option, but does not
+    # decode the gzip and deflate transfer-encodings...
+    with open(filename, 'wb') as f:
+        for chunk in response.iter_content(chunk_size=None):
+            f.write(chunk)
+
+
+def _guess_mime_type(filename):
+    mime_type = mimetypes.guess_type(filename, strict=False)[0]
+    if mime_type is None:
+        mime_type = "application/octet-stream"
+    return mime_type
+
+
+def _guess_upload_content_type(upload):
+    if upload:
+        if isinstance(upload, str):
+            return "text/plain; charset=utf-8"
+        elif hasattr(upload, "name"):
+            return _guess_mime_type(upload.name)
+        return "application/octet-stream"
+    return None
 
 
 class Base:
@@ -128,19 +152,12 @@ class ReplicationMixin:
         self.post(("sync", "in"), json=assertions)
 
 
-def guess_mime_type(filename):
-    mime_type = mimetypes.guess_type(filename, strict=False)[0]
-    if mime_type is None:
-        mime_type = "application/octet-stream"
-    return mime_type
-
-
 class BlobsMixin:
     def upload_file_as_blob(self, filename, mime_type=None):
         """Upload given file to blob, guessing mime_type if not given."""
         blob_id = uuid.uuid4().hex
         if mime_type is None:
-            mime_type = guess_mime_type(filename)
+            mime_type = _guess_mime_type(filename)
         with open(filename, "rb") as f:
             blob_data = f.read()
             self.upload_blob_data(blob_id, mime_type, blob_data)
@@ -238,17 +255,6 @@ class FileDownloadResponse:
         self.mime_type = mime_type
 
 
-def _guess_upload_content_type(upload):
-    if upload:
-        if isinstance(upload, str):
-            return "text/plain; charset=utf-8"
-        elif hasattr(upload, "name"):
-            return mimetypes.guess_type(upload.name)[0]
-        else:
-            return "application/octet-stream"
-    return None
-
-
 class TaskMixin:
     def run_task(self, namespace, function, params, upload=None, download=None):
         """Run task and return a means to poll for the result.
@@ -308,8 +314,7 @@ class TaskMixin:
                     # Note we don't care whether this is JSON, CSV, or some other type.
                     if download:
                         filename = pathlib.Path(download)
-                        with filename.open("wb") as f:
-                            shutil.copyfileobj(response.raw, f)
+                        _stream_response_to_file(response, filename)
                         return FileDownloadResponse(
                             filename, response.headers.get("Content-type")
                         )
@@ -419,8 +424,7 @@ class ViewMixin:
         )
         if download:
             filename = pathlib.Path(download)
-            with filename.open("wb") as f:
-                shutil.copyfileobj(response.raw, f)
+            _stream_response_to_file(response, filename)
             return FileDownloadResponse(filename, response.headers.get("Content-type"))
         else:
             if response.headers.get("Content-type") == "application/json":
@@ -434,7 +438,7 @@ class DbCtlMixin:
         """Request a Database control action.
 
         Returns a function and a unique "no reply yet" object. When called,
-        the function will return the "no repy yet" object until a reply is
+        the function will return the "no reply yet" object until a reply is
         available, or raise an error, or simply return the result from the
         function.
 
@@ -468,11 +472,9 @@ class DbCtlMixin:
             raise encapsia_api.EncapsiaApiError(
                 "{} {}".format(response.status_code, response.reason)
             )
-
         if filename is None:
             _, filename = tempfile.mkstemp()
-        with open(filename, "wb") as f:
-            shutil.copyfileobj(response.raw, f)
+        _stream_response_to_file(response, filename)
         return filename
 
     def dbctl_upload_data(self, filename):
