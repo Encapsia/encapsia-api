@@ -2,7 +2,6 @@ import collections
 import json
 import mimetypes
 import pathlib
-import re
 import shutil
 import tempfile
 import uuid
