@@ -11,7 +11,6 @@ import requests
 
 import encapsia_api
 
-
 __all__ = ["EncapsiaApi", "FileDownloadResponse"]
 
 
