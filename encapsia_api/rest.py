@@ -15,7 +15,7 @@ __all__ = ["EncapsiaApi", "FileDownloadResponse"]
 def _stream_response_to_file(response, filename):
     # NB Using shutil.copyfileobj is an attractive option, but does not
     # decode the gzip and deflate transfer-encodings...
-    with open(filename, 'wb') as f:
+    with open(filename, "wb") as f:
         for chunk in response.iter_content(chunk_size=None):
             f.write(chunk)
 
