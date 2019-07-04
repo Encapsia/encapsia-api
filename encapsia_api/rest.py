@@ -266,8 +266,8 @@ class TaskMixin:
 
         When called, the `get_task_result` function will return the `NoResultYet`
         object until a reply is available. Once a reply is available, the function will
-        either return the response directly or stream it to a file if the `download`
-        argument is provided. In that case (and only in that case), a
+        either return the response directly or stream it to a file provided by the `download`
+        argument if provided. In that case (and only in that case), a
         `FileDownloadResponse` response object is returned to indicate success and
         provide the `mime_type`.
 
@@ -335,8 +335,8 @@ class JobMixin:
 
         When called, the `get_job_result` function will return the `NoResultYet`
         object until a reply is available. Once a reply is available, the function will
-        either return the response directly or stream it to a file if the `download`
-        argument is provided. In that case (and only in that case), a
+        either return the response directly or stream it to a file provided by the
+        `download` argument if provided. In that case (and only in that case), a
         `FileDownloadResponse` response object is returned to indicate success and
         provide the `mime_type`.
 
@@ -405,8 +405,8 @@ class ViewMixin:
         If provided, `upload` should be str, bytes, or file-like object. Note that
         a file-like object can be large because it is streamed.
 
-        Either returns the response directly or streams to a file if the `download`
-        argument is provided. In that case (and only in that case), a
+        Either returns the response directly or streams to a file provided by the
+        `download` argument if provided. In that case (and only in that case), a
         `FileDownloadResponse` response object is returned to indicate success and
         provide the `mime_type`.
 
