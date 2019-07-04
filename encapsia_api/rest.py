@@ -1,12 +1,40 @@
 import collections
+import json
 import mimetypes
-import re
+import pathlib
 import tempfile
 import uuid
 
 import requests
 
 import encapsia_api
+
+__all__ = ["EncapsiaApi", "FileDownloadResponse"]
+
+
+def _stream_response_to_file(response, filename):
+    # NB Using shutil.copyfileobj is an attractive option, but does not
+    # decode the gzip and deflate transfer-encodings...
+    with open(filename, 'wb') as f:
+        for chunk in response.iter_content(chunk_size=None):
+            f.write(chunk)
+
+
+def _guess_mime_type(filename):
+    mime_type = mimetypes.guess_type(filename, strict=False)[0]
+    if mime_type is None:
+        mime_type = "application/octet-stream"
+    return mime_type
+
+
+def _guess_upload_content_type(upload):
+    if upload:
+        if isinstance(upload, str):
+            return "text/plain; charset=utf-8"
+        elif hasattr(upload, "name"):
+            return _guess_mime_type(upload.name)
+        return "application/octet-stream"
+    return None
 
 
 class Base:
@@ -32,6 +60,7 @@ class Base:
         extra_headers=None,
         expected_codes=(200, 201),
         params=None,
+        stream=False,
     ):
         headers = {
             "Accept": "application/json",
@@ -60,6 +89,7 @@ class Base:
             headers=headers,
             verify=True,
             allow_redirects=False,
+            stream=stream,
         )
         if response.status_code not in expected_codes:
             raise encapsia_api.EncapsiaApiError(
@@ -69,7 +99,7 @@ class Base:
                     (response.content or "").strip(),
                 )
             )
-        if return_json:
+        if not stream and return_json:
             answer = response.json()
             if check_json_status and answer["status"] != "ok":
                 raise encapsia_api.EncapsiaApiError(response.text)
@@ -78,24 +108,24 @@ class Base:
             return response
 
     def get(self, *args, **kwargs):
-        return self.call_api(
-            "get", *args, return_json=True, check_json_status=True, **kwargs
-        )
+        kwargs.setdefault("return_json", True)
+        kwargs.setdefault("check_json_status", True)
+        return self.call_api("get", *args, **kwargs)
 
     def put(self, *args, **kwargs):
-        return self.call_api(
-            "put", *args, return_json=True, check_json_status=True, **kwargs
-        )
+        kwargs.setdefault("return_json", True)
+        kwargs.setdefault("check_json_status", True)
+        return self.call_api("put", *args, **kwargs)
 
     def post(self, *args, **kwargs):
-        return self.call_api(
-            "post", *args, return_json=True, check_json_status=True, **kwargs
-        )
+        kwargs.setdefault("return_json", True)
+        kwargs.setdefault("check_json_status", True)
+        return self.call_api("post", *args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        return self.call_api(
-            "delete", *args, return_json=True, check_json_status=True, **kwargs
-        )
+        kwargs.setdefault("return_json", True)
+        kwargs.setdefault("check_json_status", True)
+        return self.call_api("delete", *args, **kwargs)
 
 
 class GeneralMixin:
@@ -122,19 +152,12 @@ class ReplicationMixin:
         self.post(("sync", "in"), json=assertions)
 
 
-def guess_mime_type(filename):
-    mime_type = mimetypes.guess_type(filename, strict=False)[0]
-    if mime_type is None:
-        mime_type = "application/octet-stream"
-    return mime_type
-
-
 class BlobsMixin:
     def upload_file_as_blob(self, filename, mime_type=None):
         """Upload given file to blob, guessing mime_type if not given."""
         blob_id = uuid.uuid4().hex
         if mime_type is None:
-            mime_type = guess_mime_type(filename)
+            mime_type = _guess_mime_type(filename)
         with open(filename, "rb") as f:
             blob_data = f.read()
             self.upload_blob_data(blob_id, mime_type, blob_data)
@@ -225,30 +248,38 @@ class LoginMixin:
 
 
 class FileDownloadResponse:
-    """Wrapper around a task responding with a file to download."""
+    """Object returned from a task or view when responding with a downloaded file."""
 
-    def __init__(self, content, mime_type, filename=None):
-        self.content = content
+    def __init__(self, filename, mime_type):
         self.filename = filename
         self.mime_type = mime_type
 
 
 class TaskMixin:
-    def run_task(self, namespace, function, params, data=None):
+    def run_task(self, namespace, function, params, upload=None, download=None):
         """Run task and return a means to poll for the result.
 
-        Returns a function and a unique "no result yet" object. When called,
-        the function will return the "no result yet" object until a reply is
-        available, or raise an error, or simply return the result from the
-        function.
+        If provided, `upload` should be str, bytes, or file-like object. Note that
+        a file-like object can be large because it is streamed.
+
+        Returns a `get_task_result` function and a unique `NoResultYet` object.
+
+        When called, the `get_task_result` function will return the `NoResultYet`
+        object until a reply is available. Once a reply is available, the function will
+        either return the response directly or stream it to a file if the `download`
+        argument is provided. In that case (and only in that case), a
+        `FileDownloadResponse` response object is returned to indicate success and
+        provide the `mime_type`.
+
+        Any errors result in an exception being raised.
 
         """
-        extra_headers = {"Content-type": "application/octet-stream"} if data else None
+        content_type = _guess_upload_content_type(upload)
         reply = self.post(
             ("tasks", namespace, function),
             params=params,
-            data=data,
-            extra_headers=extra_headers,
+            extra_headers={"Content-type": content_type} if content_type else None,
+            data=upload,
         )
         task_id = reply["result"]["task_id"]
 
@@ -256,34 +287,150 @@ class TaskMixin:
             pass
 
         def get_task_result():
-            response = self.call_api("get", ("tasks", namespace, task_id))
-            content_disposition = response.headers.get("Content-Disposition")
-            if content_disposition and content_disposition.startswith("attachment"):
-                # we were sent a file to download
-                filename = None
-                filename_re = r'attachment\s*;\s*filename\s*=\s*"(.+)"\s*$'
-                m = re.search(filename_re, content_disposition)
-                if m:
-                    filename = m.group(1)
-
-                return FileDownloadResponse(
-                    response.content, response.headers.get("Content-Type"), filename
-                )
-            # otherwise we should have received a json
-            reply = response.json()
-            if reply["status"] != "ok":
-                raise encapsia_api.EncapsiaApiError(response.text)
-            rest_api_result = reply["result"]
-            task_status = rest_api_result["status"]
-            task_result = rest_api_result["result"]
-            if task_status == "finished":
-                return task_result
-            elif task_status == "failed":
-                raise encapsia_api.EncapsiaApiError(rest_api_result)
-            else:
-                return NoResultYet
+            with self.call_api(
+                "get", ("tasks", namespace, task_id), stream=True
+            ) as response:
+                if response.headers.get("Content-type") == "application/json":
+                    reply = response.json()
+                    if reply.get("status") != "ok":
+                        raise encapsia_api.EncapsiaApiError(response.text)
+                    rest_api_result = reply["result"]
+                    task_status = rest_api_result["status"]
+                    task_result = rest_api_result["result"]
+                    if task_status == "finished":
+                        if download:
+                            filename = pathlib.Path(download)
+                            with filename.open("wt") as f:
+                                json.dump(task_result, f, indent=4)
+                            return FileDownloadResponse(filename, "application/json")
+                        else:
+                            return task_result
+                    elif task_status == "failed":
+                        raise encapsia_api.EncapsiaApiError(rest_api_result)
+                    else:
+                        return NoResultYet
+                else:
+                    # Stream the response directly to the given file.
+                    # Note we don't care whether this is JSON, CSV, or some other type.
+                    if download:
+                        filename = pathlib.Path(download)
+                        _stream_response_to_file(response, filename)
+                        return FileDownloadResponse(
+                            filename, response.headers.get("Content-type")
+                        )
+                    else:
+                        return response.text
 
         return get_task_result, NoResultYet
+
+
+class JobMixin:
+    def run_job(self, namespace, function, params, upload=None, download=None):
+        """Run job and return a means to poll for the result.
+
+        If provided, `upload` should be str, bytes, or file-like object. Note that
+        a file-like object can be large because it is streamed.
+
+        Returns a `get_job_result` function and a unique `NoResultYet` object.
+
+        When called, the `get_job_result` function will return the `NoResultYet`
+        object until a reply is available. Once a reply is available, the function will
+        either return the response directly or stream it to a file if the `download`
+        argument is provided. In that case (and only in that case), a
+        `FileDownloadResponse` response object is returned to indicate success and
+        provide the `mime_type`.
+
+        Any errors result in an exception being raised.
+
+        """
+        content_type = _guess_upload_content_type(upload)
+        reply = self.post(
+            ("jobs", namespace, function),
+            params=params,
+            extra_headers={"Content-type": content_type} if content_type else None,
+            data=upload,
+        )
+        task_id = reply["result"]["task_id"]
+        job_id = reply["result"]["job_id"]
+
+        class NoResultYet:
+            pass
+
+        def get_job_result():
+            with self.call_api("get", ("tasks", namespace, task_id)) as response:
+                reply = response.json()
+                if reply.get("status") != "ok":
+                    raise encapsia_api.EncapsiaApiError(response.text)
+                rest_api_result = reply["result"]
+                task_status = rest_api_result["status"]
+                if task_status == "finished":
+                    reply = self.get(("jobs", namespace, job_id))
+                    joblog = reply["result"]["logs"][0]
+                    assert joblog["status"] == "success"
+                    result = joblog["output"]
+                    if download:
+                        filename = pathlib.Path(download)
+                        with filename.open("wt") as f:
+                            json.dump(result, f, indent=4)
+                        return FileDownloadResponse(filename, "application/json")
+                    else:
+                        return result
+                elif task_status == "failed":
+                    raise encapsia_api.EncapsiaApiError(rest_api_result)
+                else:
+                    return NoResultYet
+
+        return get_job_result, NoResultYet
+
+
+class ViewMixin:
+    def run_view(
+        self,
+        namespace,
+        function,
+        view_arguments=[],
+        view_options={},
+        use_post=False,
+        upload=None,
+        download=None,
+    ):
+        """Run a view function and return its result.
+
+        The `view_arguments` will become path segments in the URL.
+        The `view_options` will become query string arguments in the URL.
+
+        For views which modify the database in some way (e.g. create a temporary table),
+        use `use_post=True`.
+
+        If provided, `upload` should be str, bytes, or file-like object. Note that
+        a file-like object can be large because it is streamed.
+
+        Either returns the response directly or streams to a file if the `download`
+        argument is provided. In that case (and only in that case), a
+        `FileDownloadResponse` response object is returned to indicate success and
+        provide the `mime_type`.
+
+        Any errors result in an exception being raised.
+
+        """
+        content_type = _guess_upload_content_type(upload)
+        response = self.call_api(
+            "POST" if use_post else "GET",
+            ("views", namespace, function) + tuple(view_arguments),
+            params=view_options,
+            extra_headers={"Content-type": content_type} if content_type else None,
+            data=upload,
+            stream=True,
+        )
+        if download:
+            filename = pathlib.Path(download)
+            _stream_response_to_file(response, filename)
+            return FileDownloadResponse(filename, response.headers.get("Content-type"))
+        else:
+            if response.headers.get("Content-type") == "application/json":
+                return response.json()
+            else:
+                return response.text
 
 
 class DbCtlMixin:
@@ -291,7 +438,7 @@ class DbCtlMixin:
         """Request a Database control action.
 
         Returns a function and a unique "no reply yet" object. When called,
-        the function will return the "no repy yet" object until a reply is
+        the function will return the "no reply yet" object until a reply is
         available, or raise an error, or simply return the result from the
         function.
 
@@ -325,12 +472,9 @@ class DbCtlMixin:
             raise encapsia_api.EncapsiaApiError(
                 "{} {}".format(response.status_code, response.reason)
             )
-
         if filename is None:
             _, filename = tempfile.mkstemp()
-        with open(filename, "wb") as f:
-            for chunk in response.iter_content(chunk_size=1024):
-                f.write(chunk)
+        _stream_response_to_file(response, filename)
         return filename
 
     def dbctl_upload_data(self, filename):
@@ -465,6 +609,8 @@ class EncapsiaApi(
     BlobsMixin,
     LoginMixin,
     TaskMixin,
+    JobMixin,
+    ViewMixin,
     DbCtlMixin,
     ConfigMixin,
     UserMixin,
