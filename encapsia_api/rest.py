@@ -526,7 +526,8 @@ class UserMixin:
                 email == system_user.email
                 and description == system_user.description
                 and set(capabilities) == set(system_user.capabilities)
-            ) for system_user in self.get_system_users()
+            )
+            for system_user in self.get_system_users()
         )
         if should_add:
             self.post(
