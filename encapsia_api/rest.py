@@ -521,7 +521,7 @@ class UserMixin:
         encoded_description = description.lower().replace(" ", "-")
         email = f"system@{encoded_description}.encapsia.com"
         role_name = "System - " + description
-        should_add = force or any(
+        should_add = force or not any(
             (
                 email == system_user.email
                 and description == system_user.description
