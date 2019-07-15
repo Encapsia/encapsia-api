@@ -593,6 +593,7 @@ class SystemUserMixin:
 
     def get_system_user_by_description(self, description):
         """Return namedtuple of system user with given description if found."""
+        description = description.capitalize()
         for user in self.get_system_users():
             if user.description == description:
                 return user
