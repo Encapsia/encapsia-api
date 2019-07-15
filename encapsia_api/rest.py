@@ -515,31 +515,43 @@ class ConfigMixin:
 
 
 class UserMixin:
-    def add_system_user(self, description, capabilities):
+    def add_system_user(self, description, capabilities, force=False):
         """Add system user and system role for given description and capabilities."""
         description = description.capitalize()
         encoded_description = description.lower().replace(" ", "-")
         email = f"system@{encoded_description}.encapsia.com"
         role_name = "System - " + description
-        self.post(
-            "roles",
-            json=[
-                {"name": role_name, "alias": role_name, "capabilities": capabilities}
-            ],
+        should_add = force or any(
+            (
+                email == system_user.email
+                and description == system_user.description
+                and set(capabilities) == set(system_user.capabilities)
+            ) for system_user in self.get_system_users()
         )
-        self.post(
-            "users",
-            json=[
-                {
-                    "email": email,
-                    "first_name": "System",
-                    "last_name": description,
-                    "role": role_name,
-                    "enabled": True,
-                    "is_site_user": False,
-                }
-            ],
-        )
+        if should_add:
+            self.post(
+                "roles",
+                json=[
+                    {
+                        "name": role_name,
+                        "alias": role_name,
+                        "capabilities": capabilities,
+                    }
+                ],
+            )
+            self.post(
+                "users",
+                json=[
+                    {
+                        "email": email,
+                        "first_name": "System",
+                        "last_name": description,
+                        "role": role_name,
+                        "enabled": True,
+                        "is_site_user": False,
+                    }
+                ],
+            )
 
     def add_super_user(self, email, first_name, last_name):
         """Add a superuser and superuser role."""
