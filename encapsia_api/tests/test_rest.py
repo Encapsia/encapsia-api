@@ -2,7 +2,7 @@ import collections
 import unittest
 import unittest.mock
 
-from . import rest
+from encapsia_api import rest
 
 
 class TestSystemUserMixin(unittest.TestCase):
