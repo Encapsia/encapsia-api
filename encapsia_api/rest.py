@@ -266,8 +266,8 @@ class TaskMixin:
 
         When called, the `get_task_result` function will return the `NoResultYet`
         object until a reply is available. Once a reply is available, the function will
-        either return the response directly or stream it to a file provided by the `download`
-        argument if provided. In that case (and only in that case), a
+        either return the response directly or stream it to a file provided by the
+        `download` argument if provided. In that case (and only in that case), a
         `FileDownloadResponse` response object is returned to indicate success and
         provide the `mime_type`.
 
@@ -515,32 +515,91 @@ class ConfigMixin:
 
 
 class UserMixin:
-    def add_system_user(self, description, capabilities):
+    def delete_user(self, email):
+        self.delete(("users", email))
+
+    def get_all_users(self):
+        """Return raw json of all users."""
+        return self.get("users")["result"]["users"]
+
+    def get_all_roles(self):
+        """Return raw json of all roles."""
+        return self.get("roles")["result"]["roles"]
+
+
+class SystemUserMixin:
+    def make_system_user_email_from_description(self, description):
+        """Construct and return system user email from given description."""
+        encoded_description = description.lower().replace(" ", "-")
+        return f"system@{encoded_description}.encapsia.com"
+
+    def make_system_user_role_name_from_description(self, description):
+        """Construct and return system user role name from given description."""
+        return "System - " + description.capitalize()
+
+    def add_system_user(self, description, capabilities, force=False):
         """Add system user and system role for given description and capabilities."""
         description = description.capitalize()
-        encoded_description = description.lower().replace(" ", "-")
-        email = f"system@{encoded_description}.encapsia.com"
-        role_name = "System - " + description
-        self.post(
-            "roles",
-            json=[
-                {"name": role_name, "alias": role_name, "capabilities": capabilities}
-            ],
+        email = self.make_system_user_email_from_description(description)
+        role_name = self.make_system_user_role_name_from_description(description)
+        should_add = force or not any(
+            (
+                email == system_user.email
+                and description == system_user.description
+                and set(capabilities) == set(system_user.capabilities)
+            )
+            for system_user in self.get_system_users()
         )
-        self.post(
-            "users",
-            json=[
-                {
-                    "email": email,
-                    "first_name": "System",
-                    "last_name": description,
-                    "role": role_name,
-                    "enabled": True,
-                    "is_site_user": False,
-                }
-            ],
-        )
+        if should_add:
+            self.post(
+                "roles",
+                json=[
+                    {
+                        "name": role_name,
+                        "alias": role_name,
+                        "capabilities": capabilities,
+                    }
+                ],
+            )
+            self.post(
+                "users",
+                json=[
+                    {
+                        "email": email,
+                        "first_name": "System",
+                        "last_name": description,
+                        "role": role_name,
+                        "enabled": True,
+                        "is_site_user": False,
+                    }
+                ],
+            )
 
+    def get_system_users(self):
+        """Yield namedtuples of system users."""
+        users = [
+            user for user in self.get_all_users() if user["email"].startswith("system@")
+        ]
+        capabilities = {
+            role["name"]: role["capabilities"] for role in self.get_all_roles()
+        }
+        SystemUser = collections.namedtuple(
+            "SystemUser", "email description capabilities"
+        )
+        for user in users:
+            yield SystemUser(
+                user["email"], user["last_name"], tuple(capabilities[user["role"]])
+            )
+
+    def get_system_user_by_description(self, description):
+        """Return namedtuple of system user with given description if found."""
+        description = description.capitalize()
+        for user in self.get_system_users():
+            if user.description == description:
+                return user
+
+
+class SuperUserMixin:
     def add_super_user(self, email, first_name, last_name):
         """Add a superuser and superuser role."""
         self.post(
@@ -567,39 +626,12 @@ class UserMixin:
             ],
         )
 
-    def delete_user(self, email):
-        self.delete(("users", email))
-
-    def get_all_users(self):
-        """Return raw json of all users."""
-        return self.get("users")["result"]["users"]
-
-    def get_all_roles(self):
-        """Return raw json of all roles."""
-        return self.get("roles")["result"]["roles"]
-
     def get_super_users(self):
         """Yield namedtuples of superusers."""
         SuperUser = collections.namedtuple("SuperUser", "email first_name last_name")
         for user in self.get_all_users():
             if user["role"] == "Superuser":
                 yield SuperUser(user["email"], user["first_name"], user["last_name"])
-
-    def get_system_users(self):
-        """Yield namedtuples of system users."""
-        users = [
-            user for user in self.get_all_users() if user["email"].startswith("system@")
-        ]
-        capabilities = {
-            role["name"]: role["capabilities"] for role in self.get_all_roles()
-        }
-        SystemUser = collections.namedtuple(
-            "SystemUser", "email description capabilities"
-        )
-        for user in users:
-            yield SystemUser(
-                user["email"], user["last_name"], tuple(capabilities[user["role"]])
-            )
 
 
 class EncapsiaApi(
@@ -614,6 +646,8 @@ class EncapsiaApi(
     DbCtlMixin,
     ConfigMixin,
     UserMixin,
+    SystemUserMixin,
+    SuperUserMixin,
 ):
 
     """REST API access to an Encapsia server."""
