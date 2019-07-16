@@ -2,9 +2,9 @@
 
 REST API for working with Encapsia.
 
-See https://www.encapsia.com.
+See <https://www.encapsia.com.>
 
-# Release checklist
+## Release checklist
 
 * Run: `black .`
 * Run: `isort`
