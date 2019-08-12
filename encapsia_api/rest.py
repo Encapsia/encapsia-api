@@ -306,7 +306,7 @@ class TaskMixin:
                         else:
                             return task_result
                     elif task_status == "failed":
-                        raise encapsia_api.EncapsiaApiError(rest_api_result)
+                        raise encapsia_api.EncapsiaApiFailedTaskError(rest_api_result)
                     else:
                         return NoResultYet
                 else:
@@ -376,7 +376,7 @@ class JobMixin:
                     else:
                         return result
                 elif task_status == "failed":
-                    raise encapsia_api.EncapsiaApiError(rest_api_result)
+                    raise encapsia_api.EncapsiaApiFailedTasksError(rest_api_result)
                 else:
                     return NoResultYet
 
@@ -457,7 +457,7 @@ class DbCtlMixin:
             if action_status == "finished":
                 return action_result
             elif action_status == "failed":
-                raise encapsia_api.EncapsiaApiError(rest_api_result)
+                raise encapsia_api.EncapsiaApiFailedTaskError(rest_api_result)
             else:
                 return NoResultYet
 
