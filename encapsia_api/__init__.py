@@ -3,6 +3,13 @@ __version__ = "0.1.20"
 
 
 class EncapsiaApiError(RuntimeError):  # NOQA
+    def __init__(self, message, payload=None):
+        super().__init__(message)
+        self.message = message
+        self.payload = payload
+
+
+class EncapsiaApiFailedTaskError(EncapsiaApiError):  # NOQA
     pass
 
 
