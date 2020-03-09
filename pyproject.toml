@@ -5,7 +5,7 @@ description = "Client API for talking to an Encapsia system."
 readme = "README.md"
 authors = ["Timothy Corbett-Clark <timothy.corbettclark@gmail.com>"]
 license = "MIT"
-long_description_content_type = "text/markdown"
+# long_description_content_type = "text/markdown"
 keywords = ["encapsia", "eSource", "EDC", "Clinical Trials"]
 homepage = "https://github.com/tcorbettclark/encapsia-api"
 
@@ -15,7 +15,7 @@ requests = {version = "^2.20",extras = ["security"]}
 toml = "^0.10.0"
 
 [tool.poetry.dev-dependencies]
-black = {version = "^18.3-alpha.0",allows-prereleases = true}
+black = {version = "^18.3-alpha.0",allow-prereleases = true}
 isort = "^4.3"
 flake8 = "^3.7"
 nose2 = "^0.9.1"
