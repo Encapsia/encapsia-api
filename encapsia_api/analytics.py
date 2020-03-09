@@ -26,8 +26,10 @@ def analytics_connect():
         # We need the jp_proxy_widget module and JupyterLab plugin installed.
         # They should be present in Encapsia Analytics.
         import jp_proxy_widget
-    except:
-        raise RuntimeError("Cannot find jp_proxy_widget module. Are you using a standard Encapsia Analytics environment?")
+    except ModuleNotFoundError:
+        raise RuntimeError(
+            "Cannot find jp_proxy_widget module. Are you using a standard Encapsia Analytics environment?"
+        )
 
     # Create the api object now, and then re-initialise in the callback called from the browser code.
     # This allows us to populate it with the settings from the user's own browser environment.
@@ -44,11 +46,13 @@ def analytics_connect():
             sessionStorage.getItem("token")
         );
         """,
-        callback=receive_url_and_token
+        callback=receive_url_and_token,
     )
-    p.element.html("Created connection to local encapsia server from current user's login")
+    p.element.html(
+        "Created connection to local encapsia server from current user's login"
+    )
 
     # The `display` function is a global from IPython.core.display.
-    display(p)
+    display(p)  # NOQA
 
     return api
