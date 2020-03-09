@@ -13,6 +13,7 @@ class EncapsiaApiFailedTaskError(EncapsiaApiError):  # NOQA
     pass
 
 
+from encapsia_api.analytics import analytics_connect  # NOQA
 from encapsia_api.credentials import CredentialsStore  # NOQA
 from encapsia_api.credentials import discover_credentials  # NOQA
 from encapsia_api.package import PackageMaker  # NOQA
