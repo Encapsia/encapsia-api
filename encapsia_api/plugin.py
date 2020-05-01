@@ -24,7 +24,7 @@ class PluginMaker:
 
     def __init__(self, name, directory=None, **kwargs):
         self.directory = pathlib.Path(directory or tempfile.mkdtemp())
-        self.add_manifest(name=name, **kwargs)
+        self._add_manifest(name=name, **kwargs)
 
     def __enter__(self):
         return self
@@ -35,7 +35,7 @@ class PluginMaker:
     def get_directory(self):
         return self.directory
 
-    def add_manifest(self, **kwargs):
+    def _add_manifest(self, **kwargs):
         data = dict(
             name=kwargs["name"],
             description=kwargs.get("description"),
@@ -78,15 +78,20 @@ class PluginMaker:
             print_output=print_output,
         )
 
-    def make_plugin(self, api_or_host):
-        """Make plugin, upload as blob, and return local filename and URL."""
+    def make_plugin(self, directory=pathlib.Path("/tmp/ice")):
+        """Return .tar.gz of newly created plugin in given directory."""
         manifest = self.read_manifest()
         name, version = manifest["name"], manifest["version"]
-        temp_directory = pathlib.Path(tempfile.mkdtemp())
+        temp_directory = pathlib.Path(tempfile.mkdtemp(dir=directory))
         filename = temp_directory / f"plugin-{name}-{version}.tar.gz"
-        tar = tarfile.open(filename, "w:gz")
-        tar.add(self.directory, arcname=f"plugin-{name}")
-        tar.close()
+        filename.parent.mkdir(parents=True, exist_ok=True)
+        with tarfile.open(filename, "w:gz") as tar:
+            tar.add(self.directory, arcname=f"plugin-{name}")
+        return filename
+
+    def make_and_install_plugin(self, api_or_host, directory=pathlib.Path("/tmp/ice")):
+        """Make plugin, upload as blob, and return local filename and URL."""
+        filename = self.make_plugin(directory=directory)
         with filename.open("rb") as f:
             blob_data = f.read()
             api = get_api_from_api_or_host(api_or_host)
