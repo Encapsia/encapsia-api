@@ -78,7 +78,7 @@ class PluginMaker:
             print_output=print_output,
         )
 
-    def make_plugin(self, directory=pathlib.Path("/tmp/ice")):
+    def make_plugin(self, directory=pathlib.Path("/tmp")):
         """Return .tar.gz of newly created plugin in given directory."""
         manifest = self.read_manifest()
         name, version = manifest["name"], manifest["version"]
@@ -89,7 +89,7 @@ class PluginMaker:
             tar.add(self.directory, arcname=f"plugin-{name}")
         return filename
 
-    def make_and_install_plugin(self, api_or_host, directory=pathlib.Path("/tmp/ice")):
+    def make_and_install_plugin(self, api_or_host, directory=pathlib.Path("/tmp")):
         """Make plugin, upload as blob, and return local filename and URL."""
         filename = self.make_plugin(directory=directory)
         with filename.open("rb") as f:
