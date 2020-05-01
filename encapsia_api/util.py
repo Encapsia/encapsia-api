@@ -1,17 +1,12 @@
 import csv
 import io
 import json
-import pathlib
-import shutil
-import tarfile
-import tempfile
-import time
 import uuid
 
 import arrow
 
-from encapsia_api import EncapsiaApi, discover_credentials
-
+from .credentials import discover_credentials
+from .rest import EncapsiaApi
 
 __all__ = ["get_api_from_api_or_host", "make_uuid", "typed_csv_reader"]
 

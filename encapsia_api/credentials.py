@@ -5,7 +5,6 @@ import toml
 
 import encapsia_api
 
-
 __all__ = ["CredentialsStore", "discover_credentials"]
 
 

@@ -1,6 +1,5 @@
 import encapsia_api
 
-
 __all__ = ["analytics_connect"]
 
 

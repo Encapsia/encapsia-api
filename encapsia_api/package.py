@@ -6,7 +6,6 @@ from typing import Iterable
 
 import toml
 
-
 __all__ = ["PackageMaker"]
 
 
