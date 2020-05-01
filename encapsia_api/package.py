@@ -7,6 +7,9 @@ from typing import Iterable
 import toml
 
 
+__all__ = ["PackageMaker"]
+
+
 class PackageMaker:
 
     """Generic maker of packages, intended to be used as a context manager."""

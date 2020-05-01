@@ -1,6 +1,9 @@
 import encapsia_api
 
 
+__all__ = ["analytics_connect"]
+
+
 def analytics_connect():
     """Return an EncapsiaApi object connected to this encapsia server.
 
