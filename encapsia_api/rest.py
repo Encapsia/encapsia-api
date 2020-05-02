@@ -15,7 +15,7 @@ __all__ = ["EncapsiaApi", "FileDownloadResponse"]
 def _stream_response_to_file(response, filename):
     # NB Using shutil.copyfileobj is an attractive option, but does not
     # decode the gzip and deflate transfer-encodings...
-    with open(filename, "wb") as f:
+    with filename.open("wb") as f:
         for chunk in response.iter_content(chunk_size=None):
             f.write(chunk)
 
@@ -155,10 +155,11 @@ class ReplicationMixin:
 class BlobsMixin:
     def upload_file_as_blob(self, filename, mime_type=None):
         """Upload given file to blob, guessing mime_type if not given."""
+        filename = pathlib.Path(filename)
         blob_id = uuid.uuid4().hex
         if mime_type is None:
             mime_type = _guess_mime_type(filename)
-        with open(filename, "rb") as f:
+        with filename.open("rb") as f:
             blob_data = f.read()
             self.upload_blob_data(blob_id, mime_type, blob_data)
             return blob_id
@@ -177,7 +178,8 @@ class BlobsMixin:
 
     def download_blob_to_file(self, blob_id, filename):
         """Download blob to given filename."""
-        with open(filename, "wb") as f:
+        filename = pathlib.Path(filename)
+        with filename.open("wb") as f:
             data = self.download_blob_data(blob_id)
             if data:
                 f.write(data)
@@ -483,6 +485,7 @@ class DbCtlMixin:
             )
         if filename is None:
             _, filename = tempfile.mkstemp()
+        filename = pathlib.Path(filename)
         _stream_response_to_file(response, filename)
         return filename
 
@@ -492,7 +495,8 @@ class DbCtlMixin:
         Return a handle which can be used for future downloads.
 
         """
-        with open(filename, "rb") as f:
+        filename = pathlib.Path(filename)
+        with filename.open("rb") as f:
             extra_headers = {"Content-type": "application/octet-stream"}
             response = self.post(("dbctl", "data"), data=f, extra_headers=extra_headers)
             return response["result"]["handle"]
