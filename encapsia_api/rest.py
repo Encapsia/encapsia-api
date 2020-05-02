@@ -257,6 +257,56 @@ class FileDownloadResponse:
         self.mime_type = mime_type
 
 
+class CsvResponse:
+    """Iterable returned from a task or view when responding with non-downloaded CSV."""
+
+    BOOLEAN_LOOKUP = {
+        "yes": True,
+        "y": True,
+        "t": True,
+        "true": True,
+        "no": False,
+        "n": False,
+        "f": False,
+        "false": False,
+    }
+
+    TYPE_CASTERS = {
+        "json": json.loads,
+        "integer": int,
+        "float": float,
+        "datetime": lambda x: arrow.get(x).datetime,
+        "boolean": lambda x: BOOLEAN_LOOKUP.get(x.lower()),
+    }
+
+    def __init__(self, line_terable):
+        self.reader = csv.reader(line_iterable)
+        self.headers, self.type_casters = self._parse_headers()
+    
+    def _parse_headers(self)
+        raw_headers = next(self.reader)
+        headers = []
+        type_casters = {}
+        for i, header in enumerate(raw_headers):
+            name, *as_type = header.split("__", 1)
+            headers.append(name)
+            as_type = as_type[0] if as_type else None
+            caster = self.TYPE_CASTERS.get(as_type)
+            if caster:
+                type_casters[name] = caster
+        return headers, type_casters
+
+    def __next__(self):
+        row = next(self.reader)
+        row_as_dict = dict(zip(self.headers, row))
+        for name, caster in self.type_casters.items():
+            try:
+                row_as_dict[name] = caster(row_as_dict[name])
+            except ValueError:
+                row_as_dict[name] = None
+        return row_as_dict
+
+
 class TaskMixin:
     def run_task(self, namespace, function, params, upload=None, download=None):
         """Run task and return a means to poll for the result.
@@ -268,8 +318,8 @@ class TaskMixin:
 
         When called, the `get_task_result` function will return the `NoResultYet`
         object until a reply is available. Once a reply is available, the function will
-        either return the response directly or stream it to a file provided by the
-        `download` argument if provided. In that case (and only in that case), a
+        either return the response directly as unicode text or stream it to a file provided 
+        by the `download` argument if provided. In that case (and only in that case), a
         `FileDownloadResponse` response object is returned to indicate success and
         provide the `mime_type`.
 
@@ -327,6 +377,25 @@ class TaskMixin:
                         return response.text
 
         return get_task_result, NoResultYet
+
+    def run_task_and_poll(self, *args, every=0.2, **kwargs):
+        """Poll `run_task` indefinitely until result obtained."""
+        poll, NoTaskResultYet = self.run_task(*args, **kwargs)
+        result = poll()
+        while result is NoTaskResultYet:
+            time.sleep(every)
+            result = poll()
+        return result
+
+    def run_plugins_task(self, name, params, data=None):
+        """Convenience function for calling pluginsmanager tasks."""
+        reply = self.run_task_and_poll(
+            "pluginsmanager", "icepluginsmanager.{}".format(name), params, upload=data
+        )
+        if reply["status"] == "ok":
+            return reply["output"].strip()
+        else:
+            raise RuntimeError(str(reply))
 
 
 class JobMixin:
@@ -418,6 +487,14 @@ class ViewMixin:
         `FileDownloadResponse` response object is returned to indicate success and
         provide the `mime_type`.
 
+        If no `download` is requested then decoding is performed if the content-type is
+        either CSV or JSON. JSON is just returned decoded as Python objects.
+        In the case of CSV, an iterable CsvResponse object is returned. This is memory
+        efficient, and tries to coerce the data into types according to a column
+        naming convention of the form <name>__<type>. Supported types are
+        integer, float, boolean, datetime, and json. Otherwise, if neither JSON or CSV
+        then the response is unicode text.
+
         Any errors result in an exception being raised.
 
         """
@@ -437,6 +514,8 @@ class ViewMixin:
         else:
             if response.headers.get("Content-type") == "application/json":
                 return response.json()
+            else if response.headers.get("Content-type") == "text/csv":
+                return CsvResponse(response.iter_lines(decode_unicode=True)
             else:
                 return response.text
 
