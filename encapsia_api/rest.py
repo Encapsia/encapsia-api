@@ -299,15 +299,15 @@ class CsvResponse:
                 type_casters[name] = caster
         return headers, type_casters
 
-    def __next__(self):
-        row = next(self.reader)
-        row_as_dict = dict(zip(self.headers, row))
-        for name, caster in self.type_casters.items():
-            try:
-                row_as_dict[name] = caster(row_as_dict[name])
-            except ValueError:
-                row_as_dict[name] = None
-        return row_as_dict
+    def __iter__(self):
+        for row in self.reader:
+            row_as_dict = dict(zip(self.headers, row))
+            for name, caster in self.type_casters.items():
+                try:
+                    row_as_dict[name] = caster(row_as_dict[name])
+                except ValueError:
+                    row_as_dict[name] = None
+            yield row_as_dict
 
 
 class TaskMixin:
