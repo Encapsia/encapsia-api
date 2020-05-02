@@ -1,6 +1,5 @@
-import unittest
 import tarfile
-
+import unittest
 
 from encapsia_api import package
 

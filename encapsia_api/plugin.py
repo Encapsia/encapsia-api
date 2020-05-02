@@ -62,18 +62,13 @@ class PluginMaker:
     def dev_install(self, api_or_host):
         api = get_api_from_api_or_host(api_or_host)
         return api.run_plugins_task(
-            "dev_update_plugin",
-            dict(),
-            data=_create_targz_as_bytes(self.directory),
+            "dev_update_plugin", dict(), data=_create_targz_as_bytes(self.directory)
         )
 
     def dev_uninstall(self, api_or_host):
         api = get_api_from_api_or_host(api_or_host)
         name = self.read_manifest()["name"]
-        return api.run_plugins_task(
-            "dev_destroy_namespace",
-            dict(namespace=name),
-        )
+        return api.run_plugins_task("dev_destroy_namespace", dict(namespace=name))
 
     def make_plugin(self, directory=pathlib.Path("/tmp")):
         """Return .tar.gz of newly created plugin in given directory."""

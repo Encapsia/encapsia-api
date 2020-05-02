@@ -1,10 +1,13 @@
 import collections
+import csv
 import json
 import mimetypes
 import pathlib
 import tempfile
+import time
 import uuid
 
+import arrow
 import requests
 
 import encapsia_api
@@ -276,14 +279,14 @@ class CsvResponse:
         "integer": int,
         "float": float,
         "datetime": lambda x: arrow.get(x).datetime,
-        "boolean": lambda x: BOOLEAN_LOOKUP.get(x.lower()),
+        "boolean": lambda x: CsvResponse.BOOLEAN_LOOKUP.get(x.lower()),
     }
 
-    def __init__(self, line_terable):
+    def __init__(self, line_iterable):
         self.reader = csv.reader(line_iterable)
         self.headers, self.type_casters = self._parse_headers()
-    
-    def _parse_headers(self)
+
+    def _parse_headers(self):
         raw_headers = next(self.reader)
         headers = []
         type_casters = {}
@@ -318,7 +321,7 @@ class TaskMixin:
 
         When called, the `get_task_result` function will return the `NoResultYet`
         object until a reply is available. Once a reply is available, the function will
-        either return the response directly as unicode text or stream it to a file provided 
+        either return the response directly as unicode text or stream it to a file provided
         by the `download` argument if provided. In that case (and only in that case), a
         `FileDownloadResponse` response object is returned to indicate success and
         provide the `mime_type`.
@@ -514,8 +517,8 @@ class ViewMixin:
         else:
             if response.headers.get("Content-type") == "application/json":
                 return response.json()
-            else if response.headers.get("Content-type") == "text/csv":
-                return CsvResponse(response.iter_lines(decode_unicode=True)
+            elif response.headers.get("Content-type") == "text/csv":
+                return CsvResponse(response.iter_lines(decode_unicode=True))
             else:
                 return response.text
 
