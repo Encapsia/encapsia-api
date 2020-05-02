@@ -59,23 +59,20 @@ class PluginMaker:
         with filename.open("w") as f:
             f.write(sql)
 
-    def dev_install(self, api_or_host, print_output=True):
+    def dev_install(self, api_or_host):
         api = get_api_from_api_or_host(api_or_host)
-        api.run_plugins_task(
+        return api.run_plugins_task(
             "dev_update_plugin",
             dict(),
             data=_create_targz_as_bytes(self.directory),
-            print_output=print_output,
         )
 
-    def dev_uninstall(self, api_or_host, print_output=True):
+    def dev_uninstall(self, api_or_host):
         api = get_api_from_api_or_host(api_or_host)
         name = self.read_manifest()["name"]
-        api.run_plugins_task(
-            api,
+        return api.run_plugins_task(
             "dev_destroy_namespace",
             dict(namespace=name),
-            print_output=print_output,
         )
 
     def make_plugin(self, directory=pathlib.Path("/tmp")):
