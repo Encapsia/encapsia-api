@@ -1,43 +1,25 @@
 import collections
 import csv
 import json
-import mimetypes
 import pathlib
-import tempfile
+import subprocess
+import sys
 import time
 import uuid
 
-import arrow
 import requests
 
+import arrow
 import encapsia_api
+from encapsia_api.lib import (
+    download_to_temp_file,
+    guess_mime_type,
+    guess_upload_content_type,
+    stream_response_to_file,
+    untar_to_temp_dir,
+)
 
 __all__ = ["EncapsiaApi", "FileDownloadResponse"]
-
-
-def _stream_response_to_file(response, filename):
-    # NB Using shutil.copyfileobj is an attractive option, but does not
-    # decode the gzip and deflate transfer-encodings...
-    with filename.open("wb") as f:
-        for chunk in response.iter_content(chunk_size=None):
-            f.write(chunk)
-
-
-def _guess_mime_type(filename):
-    mime_type = mimetypes.guess_type(filename, strict=False)[0]
-    if mime_type is None:
-        mime_type = "application/octet-stream"
-    return mime_type
-
-
-def _guess_upload_content_type(upload):
-    if upload:
-        if isinstance(upload, str):
-            return "text/plain; charset=utf-8"
-        elif hasattr(upload, "name"):
-            return _guess_mime_type(upload.name)
-        return "application/octet-stream"
-    return None
 
 
 class Base:
@@ -161,7 +143,7 @@ class BlobsMixin:
         filename = pathlib.Path(filename)
         blob_id = uuid.uuid4().hex
         if mime_type is None:
-            mime_type = _guess_mime_type(filename)
+            mime_type = guess_mime_type(filename)
         with filename.open("rb") as f:
             blob_data = f.read()
             self.upload_blob_data(blob_id, mime_type, blob_data)
@@ -183,7 +165,9 @@ class BlobsMixin:
         """Download blob to given filename."""
         filename = pathlib.Path(filename)
         with filename.open("wb") as f:
-            data = self.download_blob_data(blob_id)
+            data = self.download_blob_data(
+                blob_id
+            )  # TODO stream it to make it memory efficient
             if data:
                 f.write(data)
 
@@ -329,7 +313,7 @@ class TaskMixin:
         Any errors result in an exception being raised.
 
         """
-        content_type = _guess_upload_content_type(upload)
+        content_type = guess_upload_content_type(upload)
         reply = self.post(
             ("tasks", namespace, function),
             params=params,
@@ -372,7 +356,7 @@ class TaskMixin:
                     # Note we don't care whether this is JSON, CSV, or some other type.
                     if download:
                         filename = pathlib.Path(download)
-                        _stream_response_to_file(response, filename)
+                        stream_response_to_file(response, filename)
                         return FileDownloadResponse(
                             filename, response.headers.get("Content-type")
                         )
@@ -389,16 +373,6 @@ class TaskMixin:
             time.sleep(every)
             result = poll()
         return result
-
-    def run_plugins_task(self, name, params, data=None):
-        """Convenience function for calling pluginsmanager tasks."""
-        reply = self.run_task_and_poll(
-            "pluginsmanager", "icepluginsmanager.{}".format(name), params, upload=data
-        )
-        if reply["status"] == "ok":
-            return reply["output"].strip()
-        else:
-            raise RuntimeError(str(reply))
 
 
 class JobMixin:
@@ -420,7 +394,7 @@ class JobMixin:
         Any errors result in an exception being raised.
 
         """
-        content_type = _guess_upload_content_type(upload)
+        content_type = guess_upload_content_type(upload)
         reply = self.post(
             ("jobs", namespace, function),
             params=params,
@@ -501,7 +475,7 @@ class ViewMixin:
         Any errors result in an exception being raised.
 
         """
-        content_type = _guess_upload_content_type(upload)
+        content_type = guess_upload_content_type(upload)
         response = self.call_api(
             "POST" if use_post else "GET",
             ("views", namespace, function) + tuple(view_arguments),
@@ -512,7 +486,7 @@ class ViewMixin:
         )
         if download:
             filename = pathlib.Path(download)
-            _stream_response_to_file(response, filename)
+            stream_response_to_file(response, filename)
             return FileDownloadResponse(filename, response.headers.get("Content-type"))
         else:
             if response.headers.get("Content-type") == "application/json":
@@ -558,18 +532,8 @@ class DbCtlMixin:
 
     def dbctl_download_data(self, handle, filename=None):
         """Download data and return (temp) filename."""
-        headers = {"Accept": "*/*", "Authorization": "Bearer {}".format(self.token)}
         url = "/".join([self.url, self.version, "dbctl/data", handle])
-        response = requests.get(url, headers=headers, verify=True, stream=True)
-        if response.status_code != 200:
-            raise encapsia_api.EncapsiaApiError(
-                "{} {}".format(response.status_code, response.reason)
-            )
-        if filename is None:
-            _, filename = tempfile.mkstemp()
-        filename = pathlib.Path(filename)
-        _stream_response_to_file(response, filename)
-        return filename
+        return download_to_temp_file(url, self.token)
 
     def dbctl_upload_data(self, filename):
         """Upload data from given filename.
@@ -582,6 +546,37 @@ class DbCtlMixin:
             extra_headers = {"Content-type": "application/octet-stream"}
             response = self.post(("dbctl", "data"), data=f, extra_headers=extra_headers)
             return response["result"]["handle"]
+
+
+class PluginsMixin:
+    def run_plugins_task(self, name, params, data=None):
+        """Convenience function for calling pluginsmanager tasks."""
+        reply = self.run_task_and_poll(
+            "pluginsmanager", "icepluginsmanager.{}".format(name), params, upload=data
+        )
+        if reply["status"] == "ok":
+            return reply["output"].strip()
+        else:
+            raise RuntimeError(str(reply))
+
+    def install_python(self, namespace, wheelhouse="python/wheelhouse.tar.gz"):
+        """Download and install Python packages published by given plugin/namespace."""
+        url = "/".join([self.url, namespace, wheelhouse])
+        with download_to_temp_file(url, self.token) as tmp_filename:
+            with untar_to_temp_dir(tmp_filename) as tmp_dir:
+                subprocess.check_call(
+                    [
+                        sys.executable,
+                        "-m",
+                        "pip",
+                        "install",
+                        "--no-index",
+                        "--find-links",
+                        tmp_dir,
+                        "--requirements",
+                        tmp_dir / "requirements.txt",
+                    ]
+                )
 
 
 class ConfigMixin:
@@ -739,6 +734,7 @@ class EncapsiaApi(
     JobMixin,
     ViewMixin,
     DbCtlMixin,
+    PluginsMixin,
     ConfigMixin,
     UserMixin,
     SystemUserMixin,
