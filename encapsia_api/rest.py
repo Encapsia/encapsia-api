@@ -146,7 +146,7 @@ class BlobsMixin:
             mime_type = guess_mime_type(filename)
         with filename.open("rb") as f:
             blob_data = f.read()
-            self.upload_blob_data(blob_id, mime_type, blob_data)
+            self.upload_blob_data(blob_id, mime_type, blob_data)  # TODO be memory efficienct
             return blob_id
 
     def upload_blob_data(self, blob_id, mime_type, blob_data):
