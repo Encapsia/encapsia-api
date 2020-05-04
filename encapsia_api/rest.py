@@ -374,6 +374,16 @@ class TaskMixin:
             result = poll()
         return result
 
+    def run_plugins_task(self, name, params, data=None):
+        """Convenience function for calling pluginsmanager tasks."""
+        reply = self.run_task_and_poll(
+            "pluginsmanager", "icepluginsmanager.{}".format(name), params, upload=data
+        )
+        if reply["status"] == "ok":
+            return reply["output"].strip()
+        else:
+            raise RuntimeError(str(reply))
+
 
 class JobMixin:
     def run_job(self, namespace, function, params, upload=None, download=None):
@@ -533,7 +543,8 @@ class DbCtlMixin:
     def dbctl_download_data(self, handle, filename=None):
         """Download data and return (temp) filename."""
         url = "/".join([self.url, self.version, "dbctl/data", handle])
-        return download_to_temp_file(url, self.token)
+        with download_to_temp_file(url, self.token, cleanup=False) as filename:
+            return filename
 
     def dbctl_upload_data(self, filename):
         """Upload data from given filename.
@@ -548,19 +559,25 @@ class DbCtlMixin:
             return response["result"]["handle"]
 
 
-class PluginsMixin:
-    def run_plugins_task(self, name, params, data=None):
-        """Convenience function for calling pluginsmanager tasks."""
-        reply = self.run_task_and_poll(
-            "pluginsmanager", "icepluginsmanager.{}".format(name), params, upload=data
-        )
-        if reply["status"] == "ok":
-            return reply["output"].strip()
-        else:
-            raise RuntimeError(str(reply))
+class MiscMixin:
 
-    def install_python(self, namespace, wheelhouse="python/wheelhouse.tar.gz"):
-        """Download and install Python packages published by given plugin/namespace."""
+    def download_file(self, path, untargz=False):
+        """Download static file to temp file or dir (if untargz is True)."""
+        url = "/".join([self.url, path])
+        if untargz:
+            with download_to_temp_file(url, self.token) as tmp_filename:
+                with untar_to_temp_dir(tmp_filename, cleanup=False) as tmp_dir:
+                    return tmp_dir
+        else:
+            with download_to_temp_file(url, self.token, cleanup=False) as tmp_filename:
+                return tmp_filename
+
+    def pip_install_from_plugin(self, namespace, wheelhouse="python/wheelhouse.tar.gz"):
+        """Download and install Python packages published by given plugin/namespace.
+        
+        The output from `pip install` is sent to stdout/err.
+
+        """
         url = "/".join([self.url, namespace, wheelhouse])
         with download_to_temp_file(url, self.token) as tmp_filename:
             with untar_to_temp_dir(tmp_filename) as tmp_dir:
@@ -570,10 +587,9 @@ class PluginsMixin:
                         "-m",
                         "pip",
                         "install",
-                        "--no-index",
                         "--find-links",
                         tmp_dir,
-                        "--requirements",
+                        "--requirement",
                         tmp_dir / "requirements.txt",
                     ]
                 )
@@ -734,7 +750,7 @@ class EncapsiaApi(
     JobMixin,
     ViewMixin,
     DbCtlMixin,
-    PluginsMixin,
+    MiscMixin,
     ConfigMixin,
     UserMixin,
     SystemUserMixin,
