@@ -36,7 +36,8 @@ def stream_response_to_file(response, filename):
 
 
 @contextlib.contextmanager
-def download_to_temp_file(url, token):
+def download_to_temp_file(url, token, cleanup=True):
+    """Context manager for downloading a fixed file to a temporary file."""
     headers = {"Accept": "*/*", "Authorization": "Bearer {}".format(token)}
     response = requests.get(url, headers=headers, verify=True, stream=True)
     if response.status_code != 200:
@@ -49,31 +50,25 @@ def download_to_temp_file(url, token):
         stream_response_to_file(response, filename)
         yield filename
     finally:
-        shutil.rmtree(filename)
+        if cleanup:
+            filename.unlink()
 
 
 @contextlib.contextmanager
-def temp_dir():
-    """Context manager for creating a temporary directory.
-
-    Cleans up afterwards.
-
-    """
+def temp_dir(cleanup=True):
+    """Context manager for creating a temporary directory."""
     directory = pathlib.Path(tempfile.mkdtemp())
     try:
         yield directory
     finally:
-        shutil.rmtree(directory)
+        if cleanup:
+            shutil.rmtree(directory)
 
 
 @contextlib.contextmanager
-def untar_to_temp_dir(filename):
-    """Context manager for creating a temp directory with contents of tar.gz.
-
-    Yields the name of the temp directory (which is cleaned up afterwards).
-
-    """
-    with temp_dir() as directory:
+def untar_to_temp_dir(filename, cleanup=True):
+    """Context manager for creating a temp directory with contents of tar.gz."""
+    with temp_dir(cleanup=cleanup) as directory:
         tar = tarfile.open(filename)
         tar.extractall(directory)
         tar.close()
