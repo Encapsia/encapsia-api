@@ -7,9 +7,9 @@ import sys
 import time
 import uuid
 
+import arrow
 import requests
 
-import arrow
 import encapsia_api
 from encapsia_api.lib import (
     download_to_temp_file,
@@ -560,7 +560,6 @@ class DbCtlMixin:
 
 
 class MiscMixin:
-
     def download_file(self, path, untargz=False):
         """Download static file to temp file or dir (if untargz is True)."""
         url = "/".join([self.url, path])
@@ -574,7 +573,7 @@ class MiscMixin:
 
     def pip_install_from_plugin(self, namespace, wheelhouse="python/wheelhouse.tar.gz"):
         """Download and install Python packages published by given plugin/namespace.
-        
+
         The output from `pip install` is sent to stdout/err.
 
         """
