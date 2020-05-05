@@ -12,6 +12,7 @@ import requests
 
 import encapsia_api
 from encapsia_api.lib import (
+    download_to_file,
     download_to_temp_file,
     guess_mime_type,
     guess_upload_content_type,
@@ -244,6 +245,7 @@ class FileDownloadResponse:
         self.mime_type = mime_type
 
 
+
 class CsvResponse:
     """Iterable returned from a task or view when responding with non-downloaded CSV."""
 
@@ -258,12 +260,18 @@ class CsvResponse:
         "false": False,
     }
 
+    def _boolean_lookup(self, value):
+        try:
+            return self.BOOLEAN_LOOKUP[value.lower()]
+        except KeyError:
+            raise ValueError(f"Cannot convert {value} to boolean.")
+
     TYPE_CASTERS = {
         "json": json.loads,
         "integer": int,
         "float": float,
         "datetime": lambda x: arrow.get(x).datetime,
-        "boolean": lambda x: CsvResponse.BOOLEAN_LOOKUP.get(x.lower()),
+        "boolean": self._boolean_lookup,
     }
 
     def __init__(self, line_iterable):
@@ -365,13 +373,15 @@ class TaskMixin:
 
         return get_task_result, NoResultYet
 
-    def run_task_and_poll(self, *args, every=0.2, **kwargs):
-        """Poll `run_task` indefinitely until result obtained."""
+    def run_task_and_poll(self, *args, every=0.2, max_tries=100, **kwargs):
+        """Poll `run_task` until result obtained or max number of tries exceeded."""
         poll, NoTaskResultYet = self.run_task(*args, **kwargs)
         result = poll()
-        while result is NoTaskResultYet:
+        n = 0
+        while n < max_tries and result is NoTaskResultYet:
             time.sleep(every)
             result = poll()
+            n += 1
         return result
 
     def run_plugins_task(self, name, params, data=None):
@@ -457,6 +467,7 @@ class ViewMixin:
         use_post=False,
         upload=None,
         download=None,
+        typed_csv=False,
     ):
         """Run a view function and return its result.
 
@@ -475,8 +486,9 @@ class ViewMixin:
         provide the `mime_type`.
 
         If no `download` is requested then decoding is performed if the content-type is
-        either CSV or JSON. JSON is just returned decoded as Python objects.
-        In the case of CSV, an iterable CsvResponse object is returned. This is memory
+        either CSV or JSON. JSON is returned decoded as Python objects.
+        In the case of CSV, if `typed_csv` is False then the raw text is returned unparsed. If
+        `typed_csv` is True then an iterable CsvResponse object is returned. This is memory
         efficient, and tries to coerce the data into types according to a column
         naming convention of the form <name>__<type>. Supported types are
         integer, float, boolean, datetime, and json. Otherwise, if neither JSON or CSV
@@ -501,7 +513,7 @@ class ViewMixin:
         else:
             if response.headers.get("Content-type") == "application/json":
                 return response.json()
-            elif response.headers.get("Content-type") == "text/csv":
+            elif typed_csv and response.headers.get("Content-type") == "text/csv":
                 return CsvResponse(response.iter_lines(decode_unicode=True))
             else:
                 return response.text
@@ -560,17 +572,21 @@ class DbCtlMixin:
 
 
 class MiscMixin:
-    def download_file(self, path, untargz=False):
-        """Download static file to temp file or dir (if untargz is True)."""
-        url = "/".join([self.url, path])
-        if untargz:
-            with download_to_temp_file(url, self.token) as tmp_filename:
-                with untar_to_temp_dir(tmp_filename, cleanup=False) as tmp_dir:
-                    return tmp_dir
-        else:
-            with download_to_temp_file(url, self.token, cleanup=False) as tmp_filename:
-                return tmp_filename
+    def download_file(self, url_path, target=None, untargz=False):
+        """Download static file to target file/dir (if untargz is True).
 
+        If target is None then a temporary file/dir is used.       
+        
+        """
+        url = "/".join([self.url, url_path])
+        if untargz:
+            with download_to_file(url, self.token) as tmp_filename:
+                with untar_to_dir(tmp_filename, target=target, cleanup=False) as directory:
+                    return directory
+        else:
+            with download_to_file(url, self.token, target=target, cleanup=False) as filename:
+                return filename
+                
     def pip_install_from_plugin(self, namespace, wheelhouse="python/wheelhouse.tar.gz"):
         """Download and install Python packages published by given plugin/namespace.
 

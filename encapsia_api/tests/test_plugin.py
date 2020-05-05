@@ -11,6 +11,6 @@ class TestPluginMaker(unittest.TestCase):
             self.assertEqual(filename.name, "plugin-test-0.0.1.tar.gz")
             with tarfile.open(filename, mode="r:gz") as tar:
                 self.assertEqual(
-                    set([m.name for m in tar.getmembers()]),
+                    set(m.name for m in tar.getmembers()),
                     set(["plugin-test", "plugin-test/plugin.toml"]),
                 )

@@ -36,14 +36,16 @@ class PluginMaker:
         return self.directory
 
     def _add_manifest(self, **kwargs):
-        data = dict(
-            name=kwargs["name"],
-            description=kwargs.get("description"),
-            version=kwargs.get("version", "0.0.1"),
-            created_by=kwargs.get("created_by", "unknown@encapsia.com"),
-            n_task_workers=kwargs.get("n_task_workers", 1),
-            reset_on_install=kwargs.get("reset_on_install", True),
-        )
+        data = dict(kwargs)
+        # All values are passed through to the manifest but
+        # ensure certain values are set and supply some defaults.
+        data.update(dict(
+            name=data["name"],
+            description=data.get("description"),
+            version=data.get("version", "0.0.1"),
+            created_by=data.get("created_by", "unknown@encapsia.com"),
+            n_task_workers=data.get("n_task_workers", 1),
+        ))
         filename = self.directory / "plugin.toml"
         with filename.open("w") as f:
             toml.dump(data, f)
@@ -51,7 +53,7 @@ class PluginMaker:
     def read_manifest(self):
         return toml.load(self.directory / "plugin.toml")
 
-    def add_view(self, name, sql):
+    def add_view_file(self, name, sql):
         filename = self.directory / "views" / name
         if filename.suffix != ".sql":
             filename = filename.with_suffix(".sql")
@@ -84,15 +86,11 @@ class PluginMaker:
     def make_and_upload_plugin(self, api_or_host, directory=pathlib.Path("/tmp")):
         """Make plugin, upload as blob, and return local filename and URL."""
         filename = self.make_plugin(directory=directory)
-        with filename.open("rb") as f:
-            blob_data = f.read()
-            api = get_api_from_api_or_host(api_or_host)
-            response = api.call_api(
-                "put",
-                ("blobs", make_uuid()),
-                data=blob_data,
-                extra_headers={"Content-type": "application/x-tar"},
-                return_json=True,
-                check_json_status=True,
-            )
-            return filename, response["result"]["url"]
+        blob_data = filename.read_bytes()
+        api = get_api_from_api_or_host(api_or_host)
+        response = api.put(
+            ("blobs", make_uuid()),
+            data=blob_data,
+            extra_headers={"Content-type": "application/x-tar"},
+        )
+        return filename, response["result"]["url"]
