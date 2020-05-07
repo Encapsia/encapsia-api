@@ -15,8 +15,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Install poetry using pipx
+    - name: Install poetry using pipx --user
       run: |
+        pip install --upgrade pip
         python3 -m pip install pipx
         export PATH=${PATH}:/home/runner/.local/bin
         pipx install poetry
