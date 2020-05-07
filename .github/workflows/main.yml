@@ -18,7 +18,6 @@ jobs:
     - name: Install poetry using pipx
       run: |
         python3 -m pip install pipx
-        python3 -m pipx ensurepath
         export PATH=${PATH}:/home/runner/.local/bin
         pipx install poetry
     - name: Install packages
