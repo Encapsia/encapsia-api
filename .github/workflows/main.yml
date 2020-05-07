@@ -12,7 +12,6 @@ jobs:
     strategy:
       matrix:
         python-versions: [3.6]
-
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -21,9 +20,10 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install poetry under pipx
       run: |
-        sudo apt-get install python3-venv
         export PATH=${PATH}:/home/runner/.local/bin
+        sudo apt-get install python3-venv
         python3 -m pip install --upgrade pip --user
+        python3 -m pip install --upgrade wheel --user
         python3 -m pip install pipx --user
         pipx install poetry
     - name: Install packages
@@ -31,4 +31,6 @@ jobs:
         export PATH=${PATH}:/home/runner/.local/bin
         poetry install -v
     - name: Run tests
-      run: poetry run nose2 -v
+      run: |
+        export PATH=${PATH}:/home/runner/.local/bin
+        poetry run nose2 -v
