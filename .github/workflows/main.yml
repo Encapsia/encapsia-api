@@ -21,14 +21,14 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install poetry under pipx
       run: |
-        whoami
-        id
         sudo apt-get install python3-venv
         export PATH=${PATH}:/home/runner/.local/bin
         python3 -m pip install --upgrade pip --user
         python3 -m pip install pipx --user
         pipx install poetry
     - name: Install packages
-      run: poetry install -v
+      run: |
+        export PATH=${PATH}:/home/runner/.local/bin
+        poetry install -v
     - name: Run tests
       run: poetry run nose2 -v
