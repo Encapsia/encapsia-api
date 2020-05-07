@@ -12,5 +12,4 @@ See <https://www.encapsia.com.>
 * Run: `isort`
 * Run: `flake8 .`
 * Run: `nose2 -v`
-* Run: `tox` (or leave this for github)
 * Ensure `git tag`, package version (via `poetry version`), and `encapsia_api.__version__` are all equal.
