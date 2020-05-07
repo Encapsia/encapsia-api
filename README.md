@@ -1,5 +1,7 @@
 # Encapsia API Library
 
+![Tests](https://github.com/tcorbettclark/encapsia-api/workflows/Tests/badge.svg)
+
 REST API for working with Encapsia.
 
 See <https://www.encapsia.com.>
