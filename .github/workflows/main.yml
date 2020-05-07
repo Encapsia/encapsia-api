@@ -15,10 +15,14 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Install poetry using pipx --user
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install poetry under pipx
       run: |
-        pip install --upgrade pip
-        python3 -m pip install pipx
+        python -m pip install --upgrade pip
+        pip install pipx
         export PATH=${PATH}:/home/runner/.local/bin
         pipx install poetry
     - name: Install packages
