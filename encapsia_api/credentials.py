@@ -5,6 +5,8 @@ import toml
 
 import encapsia_api
 
+__all__ = ["CredentialsStore", "discover_credentials"]
+
 
 class CredentialsStore:
     CREDENTIALS_STORE = Path().home() / ".encapsia" / "credentials.toml"

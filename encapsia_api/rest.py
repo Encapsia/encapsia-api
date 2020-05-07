@@ -1,40 +1,25 @@
 import collections
+import csv
 import json
-import mimetypes
 import pathlib
-import tempfile
+import subprocess
+import sys
+import time
 import uuid
 
+import arrow
 import requests
 
 import encapsia_api
+from encapsia_api.lib import (
+    download_to_file,
+    guess_mime_type,
+    guess_upload_content_type,
+    stream_response_to_file,
+    untar_to_dir,
+)
 
 __all__ = ["EncapsiaApi", "FileDownloadResponse"]
-
-
-def _stream_response_to_file(response, filename):
-    # NB Using shutil.copyfileobj is an attractive option, but does not
-    # decode the gzip and deflate transfer-encodings...
-    with open(filename, "wb") as f:
-        for chunk in response.iter_content(chunk_size=None):
-            f.write(chunk)
-
-
-def _guess_mime_type(filename):
-    mime_type = mimetypes.guess_type(filename, strict=False)[0]
-    if mime_type is None:
-        mime_type = "application/octet-stream"
-    return mime_type
-
-
-def _guess_upload_content_type(upload):
-    if upload:
-        if isinstance(upload, str):
-            return "text/plain; charset=utf-8"
-        elif hasattr(upload, "name"):
-            return _guess_mime_type(upload.name)
-        return "application/octet-stream"
-    return None
 
 
 class Base:
@@ -155,12 +140,15 @@ class ReplicationMixin:
 class BlobsMixin:
     def upload_file_as_blob(self, filename, mime_type=None):
         """Upload given file to blob, guessing mime_type if not given."""
+        filename = pathlib.Path(filename)
         blob_id = uuid.uuid4().hex
         if mime_type is None:
-            mime_type = _guess_mime_type(filename)
-        with open(filename, "rb") as f:
+            mime_type = guess_mime_type(filename)
+        with filename.open("rb") as f:
             blob_data = f.read()
-            self.upload_blob_data(blob_id, mime_type, blob_data)
+            self.upload_blob_data(
+                blob_id, mime_type, blob_data
+            )  # TODO be memory efficienct
             return blob_id
 
     def upload_blob_data(self, blob_id, mime_type, blob_data):
@@ -177,8 +165,11 @@ class BlobsMixin:
 
     def download_blob_to_file(self, blob_id, filename):
         """Download blob to given filename."""
-        with open(filename, "wb") as f:
-            data = self.download_blob_data(blob_id)
+        filename = pathlib.Path(filename)
+        with filename.open("wb") as f:
+            data = self.download_blob_data(
+                blob_id
+            )  # TODO stream it to make it memory efficient
             if data:
                 f.write(data)
 
@@ -255,6 +246,62 @@ class FileDownloadResponse:
         self.mime_type = mime_type
 
 
+class CsvResponse:
+    """Iterable returned from a task or view when responding with non-downloaded CSV."""
+
+    BOOLEAN_LOOKUP = {
+        "yes": True,
+        "y": True,
+        "t": True,
+        "true": True,
+        "no": False,
+        "n": False,
+        "f": False,
+        "false": False,
+    }
+
+    def _boolean_lookup(self, value):
+        try:
+            return self.BOOLEAN_LOOKUP[value.lower()]
+        except KeyError:
+            raise ValueError(f"Cannot convert {value} to boolean.")
+
+    TYPE_CASTERS = {
+        "json": json.loads,
+        "integer": int,
+        "float": float,
+        "datetime": lambda x: arrow.get(x).datetime,
+        "boolean": _boolean_lookup,
+    }
+
+    def __init__(self, line_iterable):
+        self.reader = csv.reader(line_iterable)
+        self.headers, self.type_casters = self._parse_headers()
+
+    def _parse_headers(self):
+        raw_headers = next(self.reader)
+        headers = []
+        type_casters = {}
+        for i, header in enumerate(raw_headers):
+            name, *as_type = header.split("__", 1)
+            headers.append(name)
+            as_type = as_type[0] if as_type else None
+            caster = self.TYPE_CASTERS.get(as_type)
+            if caster:
+                type_casters[name] = caster
+        return headers, type_casters
+
+    def __iter__(self):
+        for row in self.reader:
+            row_as_dict = dict(zip(self.headers, row))
+            for name, caster in self.type_casters.items():
+                try:
+                    row_as_dict[name] = caster(row_as_dict[name])
+                except ValueError:
+                    row_as_dict[name] = None
+            yield row_as_dict
+
+
 class TaskMixin:
     def run_task(self, namespace, function, params, upload=None, download=None):
         """Run task and return a means to poll for the result.
@@ -266,15 +313,15 @@ class TaskMixin:
 
         When called, the `get_task_result` function will return the `NoResultYet`
         object until a reply is available. Once a reply is available, the function will
-        either return the response directly or stream it to a file provided by the
-        `download` argument if provided. In that case (and only in that case), a
+        either return the response directly as unicode text or stream it to a file provided
+        by the `download` argument if provided. In that case (and only in that case), a
         `FileDownloadResponse` response object is returned to indicate success and
         provide the `mime_type`.
 
         Any errors result in an exception being raised.
 
         """
-        content_type = _guess_upload_content_type(upload)
+        content_type = guess_upload_content_type(upload)
         reply = self.post(
             ("tasks", namespace, function),
             params=params,
@@ -317,7 +364,7 @@ class TaskMixin:
                     # Note we don't care whether this is JSON, CSV, or some other type.
                     if download:
                         filename = pathlib.Path(download)
-                        _stream_response_to_file(response, filename)
+                        stream_response_to_file(response, filename)
                         return FileDownloadResponse(
                             filename, response.headers.get("Content-type")
                         )
@@ -325,6 +372,27 @@ class TaskMixin:
                         return response.text
 
         return get_task_result, NoResultYet
+
+    def run_task_and_poll(self, *args, every=0.2, max_tries=100, **kwargs):
+        """Poll `run_task` until result obtained or max number of tries exceeded."""
+        poll, NoTaskResultYet = self.run_task(*args, **kwargs)
+        result = poll()
+        n = 0
+        while n < max_tries and result is NoTaskResultYet:
+            time.sleep(every)
+            result = poll()
+            n += 1
+        return result
+
+    def run_plugins_task(self, name, params, data=None):
+        """Convenience function for calling pluginsmanager tasks."""
+        reply = self.run_task_and_poll(
+            "pluginsmanager", "icepluginsmanager.{}".format(name), params, upload=data
+        )
+        if reply["status"] == "ok":
+            return reply["output"].strip()
+        else:
+            raise RuntimeError(str(reply))
 
 
 class JobMixin:
@@ -346,7 +414,7 @@ class JobMixin:
         Any errors result in an exception being raised.
 
         """
-        content_type = _guess_upload_content_type(upload)
+        content_type = guess_upload_content_type(upload)
         reply = self.post(
             ("jobs", namespace, function),
             params=params,
@@ -399,6 +467,7 @@ class ViewMixin:
         use_post=False,
         upload=None,
         download=None,
+        typed_csv=False,
     ):
         """Run a view function and return its result.
 
@@ -416,10 +485,19 @@ class ViewMixin:
         `FileDownloadResponse` response object is returned to indicate success and
         provide the `mime_type`.
 
+        If no `download` is requested then decoding is performed if the content-type is
+        either CSV or JSON. JSON is returned decoded as Python objects.
+        In the case of CSV, if `typed_csv` is False then the raw text is returned unparsed. If
+        `typed_csv` is True then an iterable CsvResponse object is returned. This is memory
+        efficient, and tries to coerce the data into types according to a column
+        naming convention of the form <name>__<type>. Supported types are
+        integer, float, boolean, datetime, and json. Otherwise, if neither JSON or CSV
+        then the response is unicode text.
+
         Any errors result in an exception being raised.
 
         """
-        content_type = _guess_upload_content_type(upload)
+        content_type = guess_upload_content_type(upload)
         response = self.call_api(
             "POST" if use_post else "GET",
             ("views", namespace, function) + tuple(view_arguments),
@@ -430,11 +508,13 @@ class ViewMixin:
         )
         if download:
             filename = pathlib.Path(download)
-            _stream_response_to_file(response, filename)
+            stream_response_to_file(response, filename)
             return FileDownloadResponse(filename, response.headers.get("Content-type"))
         else:
             if response.headers.get("Content-type") == "application/json":
                 return response.json()
+            elif typed_csv and response.headers.get("Content-type") == "text/csv":
+                return CsvResponse(response.iter_lines(decode_unicode=True))
             else:
                 return response.text
 
@@ -474,17 +554,9 @@ class DbCtlMixin:
 
     def dbctl_download_data(self, handle, filename=None):
         """Download data and return (temp) filename."""
-        headers = {"Accept": "*/*", "Authorization": "Bearer {}".format(self.token)}
         url = "/".join([self.url, self.version, "dbctl/data", handle])
-        response = requests.get(url, headers=headers, verify=True, stream=True)
-        if response.status_code != 200:
-            raise encapsia_api.EncapsiaApiError(
-                "{} {}".format(response.status_code, response.reason)
-            )
-        if filename is None:
-            _, filename = tempfile.mkstemp()
-        _stream_response_to_file(response, filename)
-        return filename
+        with download_to_file(url, self.token, cleanup=False) as filename:
+            return filename
 
     def dbctl_upload_data(self, filename):
         """Upload data from given filename.
@@ -492,10 +564,54 @@ class DbCtlMixin:
         Return a handle which can be used for future downloads.
 
         """
-        with open(filename, "rb") as f:
+        filename = pathlib.Path(filename)
+        with filename.open("rb") as f:
             extra_headers = {"Content-type": "application/octet-stream"}
             response = self.post(("dbctl", "data"), data=f, extra_headers=extra_headers)
             return response["result"]["handle"]
+
+
+class MiscMixin:
+    def download_file(self, url_path, target=None, untargz=False):
+        """Download static file to target file/dir (if untargz is True).
+
+        If target is None then a temporary file/dir is used.
+
+        """
+        url = "/".join([self.url, url_path])
+        if untargz:
+            with download_to_file(url, self.token) as tmp_filename:
+                with untar_to_dir(
+                    tmp_filename, target=target, cleanup=False
+                ) as directory:
+                    return directory
+        else:
+            with download_to_file(
+                url, self.token, target=target, cleanup=False
+            ) as filename:
+                return filename
+
+    def pip_install_from_plugin(self, namespace, wheelhouse="python/wheelhouse.tar.gz"):
+        """Download and install Python packages published by given plugin/namespace.
+
+        The output from `pip install` is sent to stdout/err.
+
+        """
+        url = "/".join([self.url, namespace, wheelhouse])
+        with download_to_file(url, self.token) as tmp_filename:
+            with untar_to_dir(tmp_filename) as tmp_dir:
+                subprocess.check_call(
+                    [
+                        sys.executable,
+                        "-m",
+                        "pip",
+                        "install",
+                        "--find-links",
+                        tmp_dir,
+                        "--requirement",
+                        tmp_dir / "requirements.txt",
+                    ]
+                )
 
 
 class ConfigMixin:
@@ -653,6 +769,7 @@ class EncapsiaApi(
     JobMixin,
     ViewMixin,
     DbCtlMixin,
+    MiscMixin,
     ConfigMixin,
     UserMixin,
     SystemUserMixin,
