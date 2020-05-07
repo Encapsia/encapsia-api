@@ -19,7 +19,6 @@ black = {version = "^19.10b0",allow-prereleases = true}
 isort = "^4.3"
 flake8 = "^3.7"
 nose2 = "^0.9"
-tox = "^3.15"
 
 [build-system]
 requires = ["poetry>=1.0.5"]
