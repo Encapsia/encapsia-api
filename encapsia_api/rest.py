@@ -13,11 +13,10 @@ import requests
 import encapsia_api
 from encapsia_api.lib import (
     download_to_file,
-    download_to_temp_file,
     guess_mime_type,
     guess_upload_content_type,
     stream_response_to_file,
-    untar_to_temp_dir,
+    untar_to_dir,
 )
 
 __all__ = ["EncapsiaApi", "FileDownloadResponse"]
@@ -147,7 +146,9 @@ class BlobsMixin:
             mime_type = guess_mime_type(filename)
         with filename.open("rb") as f:
             blob_data = f.read()
-            self.upload_blob_data(blob_id, mime_type, blob_data)  # TODO be memory efficienct
+            self.upload_blob_data(
+                blob_id, mime_type, blob_data
+            )  # TODO be memory efficienct
             return blob_id
 
     def upload_blob_data(self, blob_id, mime_type, blob_data):
@@ -245,7 +246,6 @@ class FileDownloadResponse:
         self.mime_type = mime_type
 
 
-
 class CsvResponse:
     """Iterable returned from a task or view when responding with non-downloaded CSV."""
 
@@ -271,7 +271,7 @@ class CsvResponse:
         "integer": int,
         "float": float,
         "datetime": lambda x: arrow.get(x).datetime,
-        "boolean": self._boolean_lookup,
+        "boolean": _boolean_lookup,
     }
 
     def __init__(self, line_iterable):
@@ -555,7 +555,7 @@ class DbCtlMixin:
     def dbctl_download_data(self, handle, filename=None):
         """Download data and return (temp) filename."""
         url = "/".join([self.url, self.version, "dbctl/data", handle])
-        with download_to_temp_file(url, self.token, cleanup=False) as filename:
+        with download_to_file(url, self.token, cleanup=False) as filename:
             return filename
 
     def dbctl_upload_data(self, filename):
@@ -575,18 +575,22 @@ class MiscMixin:
     def download_file(self, url_path, target=None, untargz=False):
         """Download static file to target file/dir (if untargz is True).
 
-        If target is None then a temporary file/dir is used.       
-        
+        If target is None then a temporary file/dir is used.
+
         """
         url = "/".join([self.url, url_path])
         if untargz:
             with download_to_file(url, self.token) as tmp_filename:
-                with untar_to_dir(tmp_filename, target=target, cleanup=False) as directory:
+                with untar_to_dir(
+                    tmp_filename, target=target, cleanup=False
+                ) as directory:
                     return directory
         else:
-            with download_to_file(url, self.token, target=target, cleanup=False) as filename:
+            with download_to_file(
+                url, self.token, target=target, cleanup=False
+            ) as filename:
                 return filename
-                
+
     def pip_install_from_plugin(self, namespace, wheelhouse="python/wheelhouse.tar.gz"):
         """Download and install Python packages published by given plugin/namespace.
 
@@ -594,8 +598,8 @@ class MiscMixin:
 
         """
         url = "/".join([self.url, namespace, wheelhouse])
-        with download_to_temp_file(url, self.token) as tmp_filename:
-            with untar_to_temp_dir(tmp_filename) as tmp_dir:
+        with download_to_file(url, self.token) as tmp_filename:
+            with untar_to_dir(tmp_filename) as tmp_dir:
                 subprocess.check_call(
                     [
                         sys.executable,

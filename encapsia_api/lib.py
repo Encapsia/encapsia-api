@@ -40,7 +40,7 @@ def download_to_file(url, token, target_file=None, cleanup=True):
     """Context manager for downloading a fixed file to a target_file."""
     if target_file is None:
         _, filename = tempfile.mkstemp()
-        filename = pathlib.Path(filename)      
+        filename = pathlib.Path(filename)
     else:
         filename = target_file
     try:
@@ -71,7 +71,7 @@ def temp_dir(cleanup=True):
 @contextlib.contextmanager
 def untar_to_dir(filename, target_dir=None, cleanup=True):
     """Context manager for creating a directory with contents of tar.gz.
-    
+
     If target_dir is None then a temporary directory is created.
 
     """

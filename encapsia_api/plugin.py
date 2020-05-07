@@ -39,13 +39,15 @@ class PluginMaker:
         data = dict(kwargs)
         # All values are passed through to the manifest but
         # ensure certain values are set and supply some defaults.
-        data.update(dict(
-            name=data["name"],
-            description=data.get("description"),
-            version=data.get("version", "0.0.1"),
-            created_by=data.get("created_by", "unknown@encapsia.com"),
-            n_task_workers=data.get("n_task_workers", 1),
-        ))
+        data.update(
+            dict(
+                name=data["name"],
+                description=data.get("description"),
+                version=data.get("version", "0.0.1"),
+                created_by=data.get("created_by", "unknown@encapsia.com"),
+                n_task_workers=data.get("n_task_workers", 1),
+            )
+        )
         filename = self.directory / "plugin.toml"
         with filename.open("w") as f:
             toml.dump(data, f)
