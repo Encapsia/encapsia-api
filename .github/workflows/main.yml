@@ -19,8 +19,7 @@ jobs:
       run: |
         python3 -m pip install pipx
         python3 -m pipx ensurepath
-        echo $PATH
-        rehash
+        export PATH=${PATH}:/home/runner/.local/bin
         pipx install poetry
     - name: Install packages
       run: poetry install -v
