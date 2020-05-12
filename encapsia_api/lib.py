@@ -11,7 +11,7 @@ import encapsia_api
 
 
 def guess_mime_type(filename):
-    mime_type = mimetypes.guess_type(filename, strict=False)[0]
+    mime_type = mimetypes.guess_type(str(filename), strict=False)[0]
     if mime_type is None:
         mime_type = "application/octet-stream"
     return mime_type
