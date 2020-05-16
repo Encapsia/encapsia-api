@@ -2,6 +2,8 @@
 
 ![Tests](https://github.com/tcorbettclark/encapsia-api/workflows/Tests/badge.svg)
 
+[![Known Vulnerabilities](https://snyk.io/test/github/tcorbettclark/encapsia-api/badge.svg?targetFile=requirements.txt)](https://snyk.io/test/github/tcorbettclark/encapsia-api?targetFile=requirements.txt)
+
 REST API for working with Encapsia.
 
 See <https://www.encapsia.com.>
@@ -12,4 +14,5 @@ See <https://www.encapsia.com.>
 * Run: `isort`
 * Run: `flake8 .`
 * Run: `nose2 -v`
+* Run: `poetry export -f requirements.txt >requirements.txt` (for snyk scanning)
 * Ensure `git tag`, package version (via `poetry version`), and `encapsia_api.__version__` are all equal.
