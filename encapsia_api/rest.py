@@ -19,7 +19,11 @@ from encapsia_api.lib import (
     untar_to_dir,
 )
 
-__all__ = ["EncapsiaApi", "FileDownloadResponse"]
+__all__ = ["EncapsiaApi", "EncapsiaApiTimeoutError", "FileDownloadResponse"]
+
+
+class EncapsiaApiTimeoutError(encapsia_api.EncapsiaApiError):
+    pass
 
 
 class Base:
@@ -382,6 +386,10 @@ class TaskMixin:
             time.sleep(every)
             result = poll()
             n += 1
+        if result is NoTaskResultYet:
+            raise EncapsiaApiTimeoutError(
+                f"Task didn't respond after {every * max_tries} seconds."
+            )
         return result
 
     def run_plugins_task(self, name, params, data=None):
