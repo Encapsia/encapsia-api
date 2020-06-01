@@ -250,8 +250,7 @@ class FileDownloadResponse:
         self.mime_type = mime_type
 
 
-class CsvResponse:
-    """Iterable returned from a task or view when responding with non-downloaded CSV."""
+class Boolean:
 
     BOOLEAN_LOOKUP = {
         "yes": True,
@@ -264,18 +263,22 @@ class CsvResponse:
         "false": False,
     }
 
-    def _boolean_lookup(self, value):
+    def from_str(self, value):
         try:
             return self.BOOLEAN_LOOKUP[value.lower()]
         except KeyError:
             raise ValueError(f"Cannot convert {value} to boolean.")
+
+
+class CsvResponse:
+    """Iterable returned from a task or view when responding with non-downloaded CSV."""
 
     TYPE_CASTERS = {
         "json": json.loads,
         "integer": int,
         "float": float,
         "datetime": lambda x: arrow.get(x).datetime,
-        "boolean": _boolean_lookup,
+        "boolean": Boolean().from_str,
     }
 
     def __init__(self, line_iterable):
