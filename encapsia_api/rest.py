@@ -617,6 +617,7 @@ class MiscMixin:
                         "-m",
                         "pip",
                         "install",
+                        "--force",
                         "--find-links",
                         tmp_dir,
                         "--requirement",
