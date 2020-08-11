@@ -13,14 +13,11 @@ class PackageMaker:
 
     """Generic maker of packages, intended to be used as a context manager."""
 
-    def __init__(
-        self, name, description="", version="0.0.1", created_by="unknown@encapsia.com"
-    ):
+    def __init__(self, type, version, **kwargs):
         self.directory = pathlib.Path(tempfile.mkdtemp())
         self._files = []
-        self._add_manifest(
-            name=name, description=description, version=version, created_by=created_by
-        )
+
+        self._add_manifest(type=type, version=version, **kwargs)
 
     def __enter__(self):
         return self
@@ -62,13 +59,13 @@ class PackageMaker:
         """Add a file of given name from bytes iterable."""
         self._add_file(name, iterable)
 
-    def make_package(self, directory=pathlib.Path("/tmp")):
+    def make_package(self, directory=pathlib.Path("/tmp/ice")):
         """Return .tar.gz of newly created package in given directory."""
         manifest = self.read_manifest()
-        name, version = manifest["name"], manifest["version"]
+        type, version = manifest["type"], manifest["version"]
         filename = (
             pathlib.Path(tempfile.mkdtemp(dir=directory))
-            / f"package-{name}-{version}.tar.gz"
+            / f"package-{type}-{version}.tar.gz"
         )
         filename.parent.mkdir(parents=True, exist_ok=True)
         with tarfile.open(filename, "w:gz") as tar:
