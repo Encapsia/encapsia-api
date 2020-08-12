@@ -59,13 +59,13 @@ class PackageMaker:
         """Add a file of given name from bytes iterable."""
         self._add_file(name, iterable)
 
-    def make_package(self, directory=pathlib.Path("/tmp/ice")):
+    def make_package(self, directory=pathlib.Path("/tmp")):
         """Return .tar.gz of newly created package in given directory."""
         manifest = self.read_manifest()
-        type, version = manifest["type"], manifest["version"]
+        type_, version = manifest["type"], manifest["version"]
         filename = (
             pathlib.Path(tempfile.mkdtemp(dir=directory))
-            / f"package-{type}-{version}.tar.gz"
+            / f"package-{type_}-{version}.tar.gz"
         )
         filename.parent.mkdir(parents=True, exist_ok=True)
         with tarfile.open(filename, "w:gz") as tar:
