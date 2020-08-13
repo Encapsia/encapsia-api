@@ -11,8 +11,8 @@ See <https://www.encapsia.com.>
 ## Release checklist
 
 * Run: `black .`
-* Run: `isort`
+* Run: `isort .`
 * Run: `flake8 .`
-* Run: `nose2 -v`
+* Run: `pytest -v .`
 * Run: `poetry export -f requirements.txt >requirements.txt` (for snyk scanning)
 * Ensure `git tag`, package version (via `poetry version`), and `encapsia_api.__version__` are all equal.
