@@ -20,7 +20,9 @@ _VALID_NAME_REGEX = re.compile(r"^[A-Za-z_0-9\.]*$")
 
 
 def _make_valid_name(text: str) -> str:
-    valid_chars = set(string.ascii_lowercase + string.ascii_uppercase + "0123456789_.")
+    valid_chars = set(
+        string.ascii_lowercase + string.ascii_uppercase + string.digits + "_."
+    )
     # Replace space with underscore
     text = text.replace(" ", "_")
     # Replace dash with underscore
@@ -88,6 +90,9 @@ class PackageMaker:
             toml.dump(self.manifest, f)
 
     def _add_file(self, name: str, iterable: Iterable[bytes]):
+        assert (
+            name != "package.toml"
+        ), "The manifest file is added automatically and cannot be overridden."
         self.files.append(name)
         filename = self.directory / name
         filename.parent.mkdir(parents=True, exist_ok=True)
@@ -111,7 +116,8 @@ class PackageMaker:
         """Add a file of given name from bytes iterable."""
         self._add_file(name, iterable)
 
-    def get_package_filename(self) -> pathlib.Path:
+    @property
+    def package_filename(self) -> pathlib.Path:
         type_name = _make_valid_name(self.manifest["type"]["name"])
         instance_name = _make_valid_name(self.manifest["instance"]["name"])
         instance_version = _make_valid_name(self.manifest["instance"]["version"])
@@ -122,7 +128,7 @@ class PackageMaker:
     def make_package(self, directory=pathlib.Path("/tmp")):
         """Return .tar.gz of newly created package in given directory."""
         self._add_manifest()
-        filename = directory / self.get_package_filename()
+        filename = directory / self.package_filename
         with tarfile.open(filename, "w:gz") as tar:
             for name in self.files:
                 tar.add(self.directory / name, arcname=name)
