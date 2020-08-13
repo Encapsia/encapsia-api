@@ -92,5 +92,5 @@ class TestPackageMaker(unittest.TestCase):
 
     def test_cannot_overwrite_manifest_file(self):
         with package.PackageMaker("1.0", self.MANIFEST_FIELDS) as p:
-            with self.assertRaises(AssertionError):
+            with self.assertRaises(ValueError):
                 p.add_file_from_string("package.toml", "whatever")

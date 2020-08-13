@@ -90,9 +90,10 @@ class PackageMaker:
             toml.dump(self.manifest, f)
 
     def _add_file(self, name: str, iterable: Iterable[bytes]):
-        assert (
-            name != "package.toml"
-        ), "The manifest file is added automatically and cannot be overridden."
+        if name == "package.toml":
+            raise ValueError(
+                "The manifest file is added automatically and cannot be overridden."
+            )
         self.files.append(name)
         filename = self.directory / name
         filename.parent.mkdir(parents=True, exist_ok=True)
