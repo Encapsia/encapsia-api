@@ -10,14 +10,14 @@ homepage = "https://github.com/tcorbettclark/encapsia-api"
 
 [tool.poetry.dependencies]
 python = "^3.6"
-requests = {version = "^2.20",extras = ["security"]}
-toml = "^0.10.0"
-arrow = "^0.13.1"
+requests = {version = "^2.24",extras = ["security"]}
+toml = "^0.10"
+arrow = "^0.15"
 
 [tool.poetry.dev-dependencies]
 black = {version = "^19.10b0",allow-prereleases = true}
-isort = "^4.3"
-flake8 = "^3.7"
+isort = "^5.4"
+flake8 = "^3.8"
 nose2 = "^0.9"
 
 [build-system]
