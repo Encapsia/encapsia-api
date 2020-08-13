@@ -31,4 +31,4 @@ jobs:
     - name: Run tests
       run: |
         export PATH=${PATH}:/home/runner/.local/bin
-        poetry run nose2 -v
+        poetry run pytest -v
