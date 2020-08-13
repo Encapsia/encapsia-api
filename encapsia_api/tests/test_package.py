@@ -66,16 +66,16 @@ class TestPackageMaker(unittest.TestCase):
             filename = p.make_package()
         m = package.extract_manifest(filename)
         M = self.MANIFEST_FIELDS
-        self.assertEquals(m["package_format"], "1.0")
-        self.assertEquals(m["type"]["name"], M["type_name"])
-        self.assertEquals(m["type"]["format"], M["type_format"])
-        self.assertEquals(
+        self.assertEqual(m["package_format"], "1.0")
+        self.assertEqual(m["type"]["name"], M["type_name"])
+        self.assertEqual(m["type"]["format"], M["type_format"])
+        self.assertEqual(
             m["type"]["description"], M["type_description"],
         )
-        self.assertEquals(m["instance"]["name"], M["instance_name"])
-        self.assertEquals(
+        self.assertEqual(m["instance"]["name"], M["instance_name"])
+        self.assertEqual(
             m["instance"]["version"], M["instance_version"],
         )
-        self.assertEquals(
+        self.assertEqual(
             m["instance"]["created_by"], M["instance_created_by"],
         )
