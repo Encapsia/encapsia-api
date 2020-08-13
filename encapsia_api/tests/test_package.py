@@ -67,6 +67,16 @@ class TestPackageMaker(unittest.TestCase):
         m = package.extract_manifest(filename)
         M = self.MANIFEST_FIELDS
         self.assertEqual(m["package_format"], "1.0")
+        self.assertEqual(
+            sorted(m.keys()), sorted(["package_format", "type", "instance"])
+        )
+        self.assertEqual(
+            sorted(m["type"].keys()), sorted(["description", "name", "format"])
+        )
+        self.assertEqual(
+            sorted(m["instance"].keys()),
+            sorted(["name", "version", "created_by", "created_on"]),
+        )
         self.assertEqual(m["type"]["name"], M["type_name"])
         self.assertEqual(m["type"]["format"], M["type_format"])
         self.assertEqual(
@@ -79,3 +89,8 @@ class TestPackageMaker(unittest.TestCase):
         self.assertEqual(
             m["instance"]["created_by"], M["instance_created_by"],
         )
+
+    def test_cannot_overwrite_manifest_file(self):
+        with package.PackageMaker("1.0", self.MANIFEST_FIELDS) as p:
+            with self.assertRaises(ValueError):
+                p.add_file_from_string("package.toml", "whatever")
