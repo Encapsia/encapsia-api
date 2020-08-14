@@ -55,16 +55,16 @@ class PackageMaker:
             return {
                 "package_format": "1.0",
                 "type": {
-                    "name": manifest["type_name"],
-                    "description": manifest["type_description"],
-                    "format": manifest["type_format"],
+                    "name": manifest["type"]["name"],
+                    "description": manifest["type"]["description"],
+                    "format": manifest["type"]["format"],
                 },
                 "instance": {
-                    "name": manifest["instance_name"],
-                    "description": manifest.get("instance_description"),
-                    "version": manifest["instance_version"],
-                    "created_by": manifest["instance_created_by"],
-                    "created_on": manifest.get("instance_created_on", _now()),
+                    "name": manifest["instance"]["name"],
+                    "description": manifest["instance"]["description"],
+                    "version": manifest["instance"]["version"],
+                    "created_by": manifest["instance"]["created_by"],
+                    "created_on": manifest["instance"].get("created_on", _now()),
                 },
             }
         except KeyError as e:
@@ -116,6 +116,9 @@ class PackageMaker:
     def add_file_from_bytes_iterable(self, name: str, iterable: Iterable[bytes]):
         """Add a file of given name from bytes iterable."""
         self._add_file(name, iterable)
+
+    def add_all_files_from_directory(self, directory: pathlib.Path):
+        pass
 
     @property
     def package_filename(self) -> pathlib.Path:

@@ -34,12 +34,10 @@ class TestMakeValidName(unittest.TestCase):
 class TestPackageMaker(unittest.TestCase):
 
     MANIFEST_FIELDS = dict(
-        type_name="test-type",
-        type_format="1.0",
-        type_description="whatever",
-        instance_name="test instance",
-        instance_version="1.2.3",
-        instance_created_by="fred",
+        type=dict(name="test-type", format="1.0", description="whatever"),
+        instance=dict(
+            name="test instance", description="", version="1.2.3", created_by="fred"
+        ),
     )
     PACKAGE_FILENAME = "package-test_type-test_instance-1.2.3.tar.gz"
 
@@ -75,19 +73,19 @@ class TestPackageMaker(unittest.TestCase):
         )
         self.assertEqual(
             sorted(m["instance"].keys()),
-            sorted(["name", "version", "created_by", "created_on"]),
+            sorted(["name", "description", "version", "created_by", "created_on"]),
         )
-        self.assertEqual(m["type"]["name"], M["type_name"])
-        self.assertEqual(m["type"]["format"], M["type_format"])
+        self.assertEqual(m["type"]["name"], M["type"]["name"])
+        self.assertEqual(m["type"]["format"], M["type"]["format"])
         self.assertEqual(
-            m["type"]["description"], M["type_description"],
+            m["type"]["description"], M["type"]["description"],
         )
-        self.assertEqual(m["instance"]["name"], M["instance_name"])
+        self.assertEqual(m["instance"]["name"], M["instance"]["name"])
         self.assertEqual(
-            m["instance"]["version"], M["instance_version"],
+            m["instance"]["version"], M["instance"]["version"],
         )
         self.assertEqual(
-            m["instance"]["created_by"], M["instance_created_by"],
+            m["instance"]["created_by"], M["instance"]["created_by"],
         )
 
     def test_cannot_overwrite_manifest_file(self):
