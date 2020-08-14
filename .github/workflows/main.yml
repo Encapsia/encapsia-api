@@ -17,6 +17,8 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         architecture: 'x64'
+    - run: pip install --upgrade pip
+    - run: pip install --upgrade wheel setuptools
     - run: pip install poetry
     - run: poetry install -v
     - run: poetry run pytest -v
