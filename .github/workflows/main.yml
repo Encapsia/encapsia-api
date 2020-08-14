@@ -20,7 +20,9 @@ jobs:
         architecture: 'x64'
     - run: |
         pip install poetry
-        which poetry
+        poetry install -v
+        poetry run pytest -v
+        
 
     # - name: Install poetry under pipx
     #   run: |
@@ -32,8 +34,6 @@ jobs:
     # - name: Install packages
     #   run: |
     #     export PATH=${PATH}:/home/runner/.local/bin
-    #     poetry install -v
     # - name: Run tests
     #   run: |
     #     export PATH=${PATH}:/home/runner/.local/bin
-    #     poetry run pytest -v
