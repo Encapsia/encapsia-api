@@ -13,10 +13,10 @@ jobs:
         python-versions: ['3.8']
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: '3.8'
         architecture: 'x64'
     - run: |
         which pip
@@ -36,11 +36,11 @@ jobs:
     #     python3 -m pip install --upgrade wheel --user
     #     python3 -m pip install pipx --user
     #     pipx install poetry
-    - name: Install packages
-      run: |
-        export PATH=${PATH}:/home/runner/.local/bin
-        poetry install -v
-    - name: Run tests
-      run: |
-        export PATH=${PATH}:/home/runner/.local/bin
-        poetry run pytest -v
+    # - name: Install packages
+    #   run: |
+    #     export PATH=${PATH}:/home/runner/.local/bin
+    #     poetry install -v
+    # - name: Run tests
+    #   run: |
+    #     export PATH=${PATH}:/home/runner/.local/bin
+    #     poetry run pytest -v
