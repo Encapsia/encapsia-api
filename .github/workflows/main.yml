@@ -18,9 +18,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
         architecture: 'x64'
     - run: |
-        pip install --upgrade wheel setuptools
-        pip install --user poetry
-        echo $PATH
+        pip3 install --upgrade wheel setuptools
+        pip3 install --user poetry
         export PATH=~/.local/bin:${PATH}
         poetry install -v
         poetry run pytest -v
