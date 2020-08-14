@@ -9,26 +9,22 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-versions: [3.6, 3.7, 3.8]
+        python-version: ['3.6', '3.7', '3.8', '3.9.0-rc.1']
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+    - name: Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install poetry under pipx
+        architecture: 'x64'
+    - name: Install Poetry
       run: |
-        export PATH=${PATH}:/home/runner/.local/bin
-        sudo apt-get install python3-venv
-        python3 -m pip install --upgrade pip --user
-        python3 -m pip install --upgrade wheel --user
-        python3 -m pip install pipx --user
-        pipx install poetry
-    - name: Install packages
+        curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
+    - name: Create poetry environment
       run: |
-        export PATH=${PATH}:/home/runner/.local/bin
+        source $HOME/.poetry/env
         poetry install -v
     - name: Run tests
       run: |
-        export PATH=${PATH}:/home/runner/.local/bin
+        source $HOME/.poetry/env
         poetry run pytest -v

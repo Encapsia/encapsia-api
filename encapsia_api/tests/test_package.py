@@ -1,4 +1,6 @@
+import pathlib
 import tarfile
+import tempfile
 import unittest
 
 from encapsia_api import package
@@ -34,12 +36,10 @@ class TestMakeValidName(unittest.TestCase):
 class TestPackageMaker(unittest.TestCase):
 
     MANIFEST_FIELDS = dict(
-        type_name="test-type",
-        type_format="1.0",
-        type_description="whatever",
-        instance_name="test instance",
-        instance_version="1.2.3",
-        instance_created_by="fred",
+        type=dict(name="test-type", format="1.0", description="whatever"),
+        instance=dict(
+            name="test instance", description="", version="1.2.3", created_by="fred"
+        ),
     )
     PACKAGE_FILENAME = "package-test_type-test_instance-1.2.3.tar.gz"
 
@@ -75,22 +75,55 @@ class TestPackageMaker(unittest.TestCase):
         )
         self.assertEqual(
             sorted(m["instance"].keys()),
-            sorted(["name", "version", "created_by", "created_on"]),
+            sorted(["name", "description", "version", "created_by", "created_on"]),
         )
-        self.assertEqual(m["type"]["name"], M["type_name"])
-        self.assertEqual(m["type"]["format"], M["type_format"])
+        self.assertEqual(m["type"]["name"], M["type"]["name"])
+        self.assertEqual(m["type"]["format"], M["type"]["format"])
         self.assertEqual(
-            m["type"]["description"], M["type_description"],
+            m["type"]["description"], M["type"]["description"],
         )
-        self.assertEqual(m["instance"]["name"], M["instance_name"])
+        self.assertEqual(m["instance"]["name"], M["instance"]["name"])
         self.assertEqual(
-            m["instance"]["version"], M["instance_version"],
+            m["instance"]["version"], M["instance"]["version"],
         )
         self.assertEqual(
-            m["instance"]["created_by"], M["instance_created_by"],
+            m["instance"]["created_by"], M["instance"]["created_by"],
         )
 
     def test_cannot_overwrite_manifest_file(self):
         with package.PackageMaker("1.0", self.MANIFEST_FIELDS) as p:
             with self.assertRaises(ValueError):
                 p.add_file_from_string("package.toml", "whatever")
+
+    def test_add_files_from_string(self):
+        with package.PackageMaker("1.0", self.MANIFEST_FIELDS) as p:
+            p.add_file_from_string("a.txt", "foo")
+            p.add_file_from_string("b.txt", "bar")
+            filename = p.make_package()
+            with tarfile.open(filename, mode="r:gz") as tar:
+                self.assertEqual(
+                    set(m.name for m in tar.getmembers()),
+                    set(["a.txt", "b.txt", "package.toml"]),
+                )
+
+    def test_add_files_from_directory(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_dir = pathlib.Path(tmp_dir)
+            (tmp_dir / "a.txt").write_text("foo")
+            (tmp_dir / "a_directory").mkdir()
+            (tmp_dir / "a_directory" / "b.txt").write_text("bar")
+            with package.PackageMaker("1.0", self.MANIFEST_FIELDS) as p:
+                p.add_all_files_from_directory(tmp_dir)
+                filename = p.make_package()
+                with tarfile.open(filename, mode="r:gz") as tar:
+                    self.assertEqual(
+                        set(m.name for m in tar.getmembers()),
+                        set(
+                            [
+                                "a.txt",
+                                "a_directory",
+                                "a_directory/b.txt",
+                                "package.toml",
+                            ]
+                        ),
+                    )
