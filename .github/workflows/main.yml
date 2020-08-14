@@ -18,13 +18,12 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install poetry
       run: |
-        which pip
-        which python
-        python --version
-        pip --version
+        which pip3
+        which python3
+        python3 --version
+        pip3 --version
         export PATH=${PATH}:/home/runner/.local/bin
-        which pip
-        pip install poetry
+        pip3 install poetry
         which poetry
     # - name: Install poetry under pipx
     #   run: |
