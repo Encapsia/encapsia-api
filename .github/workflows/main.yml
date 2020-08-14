@@ -20,6 +20,8 @@ jobs:
     - run: |
         which python
         which python3
+        python --version
+        python3 --version
         curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3
         source $HOME/.poetry/env
         # export PATH=~/.local/bin:${PATH}
