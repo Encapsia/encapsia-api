@@ -1,4 +1,6 @@
+import pathlib
 import tarfile
+import tempfile
 import unittest
 
 from encapsia_api import package
@@ -92,3 +94,36 @@ class TestPackageMaker(unittest.TestCase):
         with package.PackageMaker("1.0", self.MANIFEST_FIELDS) as p:
             with self.assertRaises(ValueError):
                 p.add_file_from_string("package.toml", "whatever")
+
+    def test_add_files_from_string(self):
+        with package.PackageMaker("1.0", self.MANIFEST_FIELDS) as p:
+            p.add_file_from_string("a.txt", "foo")
+            p.add_file_from_string("b.txt", "bar")
+            filename = p.make_package()
+            with tarfile.open(filename, mode="r:gz") as tar:
+                self.assertEqual(
+                    set(m.name for m in tar.getmembers()),
+                    set(["a.txt", "b.txt", "package.toml"]),
+                )
+
+    def test_add_files_from_directory(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_dir = pathlib.Path(tmp_dir)
+            (tmp_dir / "a.txt").write_text("foo")
+            (tmp_dir / "a_directory").mkdir()
+            (tmp_dir / "a_directory" / "b.txt").write_text("bar")
+            with package.PackageMaker("1.0", self.MANIFEST_FIELDS) as p:
+                p.add_all_files_from_directory(tmp_dir)
+                filename = p.make_package()
+                with tarfile.open(filename, mode="r:gz") as tar:
+                    self.assertEqual(
+                        set(m.name for m in tar.getmembers()),
+                        set(
+                            [
+                                "a.txt",
+                                "a_directory",
+                                "a_directory/b.txt",
+                                "package.toml",
+                            ]
+                        ),
+                    )

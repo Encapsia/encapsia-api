@@ -46,7 +46,6 @@ class PackageMaker:
     def __init__(self, package_format: str, manifest_fields: dict):
         self.manifest = self._seed_manifest(package_format, manifest_fields)
         self.directory = pathlib.Path(tempfile.mkdtemp())
-        self.files = []
 
     def _seed_manifest(self, package_format: str, manifest: dict):
         if package_format != "1.0":
@@ -84,17 +83,15 @@ class PackageMaker:
         self.manifest[type_name].update(data)
 
     def _add_manifest(self):
-        self.files.append("package.toml")
         filename = self.directory / "package.toml"
         with filename.open("w") as f:
             toml.dump(self.manifest, f)
 
-    def _add_file(self, name: str, iterable: Iterable[bytes]):
+    def _add_file_from_bytes_iterable(self, name: str, iterable: Iterable[bytes]):
         if name == "package.toml":
             raise ValueError(
                 "The manifest file is added automatically and cannot be overridden."
             )
-        self.files.append(name)
         filename = self.directory / name
         filename.parent.mkdir(parents=True, exist_ok=True)
         with filename.open("wb") as f:
@@ -103,22 +100,26 @@ class PackageMaker:
 
     def add_file_from_string(self, name: str, data: str):
         """Add a file of given name from string data. """
-        self._add_file(name, (data.encode(),))
+        self._add_file_from_bytes_iterable(name, (data.encode(),))
 
     def add_file_from_bytes(self, name: str, data: bytes):
         """Add a file of given name from bytes data."""
-        self._add_file(name, (data,))
+        self._add_file_from_bytes_iterable(name, (data,))
 
     def add_file_from_string_iterable(self, name: str, iterable: Iterable[str]):
         """Add a file of given name from bytes iterable."""
-        self._add_file(name, (data.encode() for data in iterable))
+        self._add_file_from_bytes_iterable(name, (data.encode() for data in iterable))
 
     def add_file_from_bytes_iterable(self, name: str, iterable: Iterable[bytes]):
         """Add a file of given name from bytes iterable."""
-        self._add_file(name, iterable)
+        self._add_file_from_bytes_iterable(name, iterable)
 
     def add_all_files_from_directory(self, directory: pathlib.Path):
-        pass
+        if (directory / "package.toml").exists():
+            raise ValueError(
+                "The manifest file is added automatically and cannot be overridden."
+            )
+        shutil.copytree(directory, self.directory, dirs_exist_ok=True)
 
     @property
     def package_filename(self) -> pathlib.Path:
@@ -133,7 +134,18 @@ class PackageMaker:
         """Return .tar.gz of newly created package in given directory."""
         self._add_manifest()
         filename = directory / self.package_filename
+
+        def strip_root_dir(tarinfo):
+            name = tarinfo.name[len(str(self.directory)) :].strip()
+            assert not tarinfo.name.startswith("/")
+            assert not name.startswith("/")
+            assert "/" + tarinfo.name == str(self.directory / name)
+            tarinfo.name = name
+            return tarinfo
+
         with tarfile.open(filename, "w:gz") as tar:
-            for name in self.files:
-                tar.add(self.directory / name, arcname=name)
+            # Just doing tar.add(self.directory) creates problems with empty top level directory.
+            # So iterate through the top level files and directories.
+            for f in self.directory.iterdir():
+                tar.add(f, filter=strip_root_dir)
         return filename
