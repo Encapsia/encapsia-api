@@ -1,4 +1,5 @@
 import datetime
+import os
 import pathlib
 import re
 import shutil
@@ -119,7 +120,18 @@ class PackageMaker:
             raise ValueError(
                 "The manifest file is added automatically and cannot be overridden."
             )
-        shutil.copytree(directory, self.directory, dirs_exist_ok=True)
+        # Ideally we would used shutil.copytree with the dirs_exit_ok option, but that's Python 3.8 and above.
+        # So instead we do it by hand. Note the problem is only with the top level directory.
+        for child in directory.iterdir():
+            new_name = self.directory / os.path.relpath(child, directory)
+            if child.is_file():
+                child.rename(new_name)
+            elif child.is_dir():
+                shutil.copytree(child, new_name)
+            else:
+                raise ValueError(
+                    f"Packages can only contain files or directories. The following is neither: {child}"
+                )
 
     @property
     def package_filename(self) -> pathlib.Path:
