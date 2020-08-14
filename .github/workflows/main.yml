@@ -18,8 +18,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
         architecture: 'x64'
     - run: |
-        pip3 install --upgrade wheel setuptools
-        pip3 install --user poetry
-        export PATH=~/.local/bin:${PATH}
+        curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
+        # export PATH=~/.local/bin:${PATH}
         poetry install -v
         poetry run pytest -v
