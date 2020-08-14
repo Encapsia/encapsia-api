@@ -19,6 +19,9 @@ jobs:
     - name: Install poetry
       run: |
         which pip
+        which python
+        python --version
+        pip --version
         export PATH=${PATH}:/home/runner/.local/bin
         which pip
         pip install poetry
