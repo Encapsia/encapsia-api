@@ -18,17 +18,12 @@ jobs:
       with:
         python-version: '3.8'
         architecture: 'x64'
+    - name: Install poetry
     - run: |
-        which pip
-        which pip3
-        which python
-        which python3
-        python --version
-        pip --version
-        python3 --version
-        pip3 --version
-        pip3 install poetry
+        pip install poetry
+    - run: |
         which poetry
+
     # - name: Install poetry under pipx
     #   run: |
     #     sudo apt-get install python3-venv
