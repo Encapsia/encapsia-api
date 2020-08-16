@@ -34,12 +34,12 @@ def _make_valid_name(text: str) -> str:
     return name
 
 
-def extract_manifest(filename: pathlib.Path):
+def extract_manifest(filename: pathlib.Path, manifest_name: str = "package.toml"):
     """Return the manifest as a dictionary from .tar.gz package."""
     with tarfile.open(filename, "r:gz") as tar:
-        manifest = tar.extractfile("package.toml")
+        manifest = tar.extractfile(manifest_name)
         if manifest is None:
-            raise ValueError("Missing manifest file: package.toml")
+            raise ValueError(f"Missing manifest file: {manifest_name}")
         return toml.loads(manifest.read().decode())
 
 
