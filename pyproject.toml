@@ -19,6 +19,7 @@ black = {version = "^19.10b0",allow-prereleases = true}
 isort = "^5.4"
 flake8 = "^3.8"
 pytest = "^6.0.1"
+mypy = "^0.782"
 
 [build-system]
 requires = ["poetry>=1.0.5"]
