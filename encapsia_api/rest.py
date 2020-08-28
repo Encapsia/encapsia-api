@@ -725,7 +725,7 @@ class SystemUserMixin:
         )
         for user in users:
             yield SystemUser(
-                user["email"], user["last_name"], tuple(capabilities[user["role"]])
+                user["email"], user["last_name"], tuple(capabilities.get(user["role"]))
             )
 
     def get_system_user_by_description(self, description):
