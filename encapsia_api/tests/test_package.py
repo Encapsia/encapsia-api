@@ -80,14 +80,17 @@ class TestPackageMaker(unittest.TestCase):
         self.assertEqual(m["type"]["name"], M["type"]["name"])
         self.assertEqual(m["type"]["format"], M["type"]["format"])
         self.assertEqual(
-            m["type"]["description"], M["type"]["description"],
+            m["type"]["description"],
+            M["type"]["description"],
         )
         self.assertEqual(m["instance"]["name"], M["instance"]["name"])
         self.assertEqual(
-            m["instance"]["version"], M["instance"]["version"],
+            m["instance"]["version"],
+            M["instance"]["version"],
         )
         self.assertEqual(
-            m["instance"]["created_by"], M["instance"]["created_by"],
+            m["instance"]["created_by"],
+            M["instance"]["created_by"],
         )
 
     def test_cannot_overwrite_manifest_file(self):
