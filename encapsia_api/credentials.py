@@ -32,10 +32,13 @@ class CredentialsStore:
     def _get(self, label):
         return self._store[label]
 
-    def get(self, label):
+    def get(self, label, include_cleared_tokens=False):
         self._refresh()
         d = self._get(label)
-        return d["url"], d["token"]
+        if include_cleared_tokens or d.get("token"):
+            return d["url"], d["token"]
+        else:
+            raise KeyError(label)
 
     def _set(self, label, url, token):
         if not url.startswith("http"):
@@ -47,11 +50,23 @@ class CredentialsStore:
         self._refresh()
         self._set(label, url, token)
 
+    def clear_token(self, label):
+        self._refresh()
+        url = self._get(label)["url"]
+        self._set(label, url, "")
+
     def remove(self, label):
         self._refresh()
         if label in self._store:
             del self._store[label]
         self._save()
+
+    def get_labels(self, include_cleared_tokens=False):
+        self._refresh()
+        if include_cleared_tokens:
+            return self._store.keys()
+        else:
+            return [k for (k, v) in self._store.items() if v.get("token")]
 
 
 def _get_env_var(name):
