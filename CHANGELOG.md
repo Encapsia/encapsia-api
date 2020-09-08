@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+(Nothing yet)
+
+## [0.2.4] - 2020-09-08
+
+### Added
+
+- A changelog!
+
 ### Fixed
 
 - Removed traceback from users without roles. Fixes bug #25.
