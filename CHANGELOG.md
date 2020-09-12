@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 (Nothing yet)
 
+## [0.2.5] - 2020-09-12
+
+### Fixed
+
+- Fix bug where dbctl_download_data ignored passed in filename.
+
 ## [0.2.4] - 2020-09-08
 
 ### Added
