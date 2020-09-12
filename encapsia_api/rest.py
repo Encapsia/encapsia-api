@@ -2,6 +2,7 @@ import collections
 import csv
 import json
 import pathlib
+import shutil
 import subprocess
 import sys
 import time
@@ -149,11 +150,8 @@ class BlobsMixin:
         if mime_type is None:
             mime_type = guess_mime_type(filename)
         with filename.open("rb") as f:
-            blob_data = f.read()
-            self.upload_blob_data(
-                blob_id, mime_type, blob_data
-            )  # TODO be memory efficienct
-            return blob_id
+            self.upload_blob_data(blob_id, mime_type, f)
+        return blob_id
 
     def upload_blob_data(self, blob_id, mime_type, blob_data):
         """Upload blob data."""
@@ -171,13 +169,9 @@ class BlobsMixin:
         """Download blob to given filename."""
         filename = pathlib.Path(filename)
         with filename.open("wb") as f:
-            data = self.download_blob_data(
-                blob_id
-            )  # TODO stream it to make it memory efficient
-            if data:
-                f.write(data)
+            self.download_blob_data(blob_id, f)
 
-    def download_blob_data(self, blob_id):
+    def download_blob_data(self, blob_id, fileobj=None):
         """Download blob data for given blob_id."""
         extra_headers = {"Accept": "*/*"}
         response = self.call_api(
@@ -185,7 +179,10 @@ class BlobsMixin:
             ("blobs", blob_id),
             extra_headers=extra_headers,
             expected_codes=(200, 302, 404),
+            stream=fileobj is not None,
         )
+        if fileobj is not None:
+            shutil.copyfileobj(response.raw, fileobj)
         if response.status_code == 200:
             return response.content
         elif response.status_code in (302, 404):
