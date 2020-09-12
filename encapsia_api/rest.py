@@ -182,7 +182,10 @@ class BlobsMixin:
             stream=fileobj is not None,
         )
         if fileobj is not None:
-            shutil.copyfileobj(response.raw, fileobj)
+            # NB Using shutil.copyfileobj is an attractive option, but does not
+            # decode the gzip and deflate transfer-encodings...
+            for chunk in response.iter_content(chunk_size=None):
+                fileobj.write(chunk)
         if response.status_code == 200:
             return response.content
         elif response.status_code in (302, 404):
