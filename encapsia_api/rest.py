@@ -180,15 +180,17 @@ class BlobsMixin:
             expected_codes=(200, 302, 404),
             stream=fileobj is not None,
         )
-        if fileobj is not None:
-            # NB Using shutil.copyfileobj is an attractive option, but does not
-            # decode the gzip and deflate transfer-encodings...
-            for chunk in response.iter_content(chunk_size=None):
-                fileobj.write(chunk)
-        if response.status_code == 200:
-            return response.content
-        elif response.status_code in (302, 404):
+        if response.status_code in (302, 404):
             return None
+        elif response.status_code == 200:
+            if fileobj is not None:
+                # NB Using shutil.copyfileobj is an attractive option, but does not
+                # decode the gzip and deflate transfer-encodings...
+                for chunk in response.iter_content(chunk_size=None):
+                    fileobj.write(chunk)
+                return None
+            else:
+                return response.content
         else:
             raise encapsia_api.EncapsiaApiError(
                 "Unable to download blob {}: {}".format(blob_id, response.status_code)

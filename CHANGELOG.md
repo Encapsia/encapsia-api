@@ -9,9 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 (Nothing yet)
 
+## [0.2.6] - 2020-09-12
+
 ### Added
 
-- Downloading and uploading blobs is now streamed rather than loading into memory.
+- Downloading and uploading blobs to/from files is now streamed rather than using temporary memory.
 
 ## [0.2.5] - 2020-09-12
 
