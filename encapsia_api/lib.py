@@ -40,9 +40,7 @@ def download_to_file(url, token, target_file=None, cleanup=True):
     """Context manager for downloading a fixed file to a target_file."""
     if target_file is None:
         _, filename = tempfile.mkstemp()
-        filename = pathlib.Path(filename)
-    else:
-        filename = target_file
+    filename = pathlib.Path(filename)
     try:
         headers = {"Accept": "*/*", "Authorization": "Bearer {}".format(token)}
         response = requests.get(url, headers=headers, verify=True, stream=True)
