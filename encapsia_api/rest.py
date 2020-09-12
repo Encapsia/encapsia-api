@@ -566,7 +566,9 @@ class DbCtlMixin:
     def dbctl_download_data(self, handle, filename=None):
         """Download data and return (temp) filename."""
         url = "/".join([self.url, self.version, "dbctl/data", handle])
-        with download_to_file(url, self.token, cleanup=False) as filename:
+        with download_to_file(
+            url, self.token, target_file=filename, cleanup=False
+        ) as filename:
             return filename
 
     def dbctl_upload_data(self, filename):
