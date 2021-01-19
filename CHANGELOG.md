@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 (Nothing yet)
 
+## [0.2.6=7] - 2021-01-19
+
+### Fixed
+
+- Fix bug where the "Content-type" header for views returning CSV also has the charset option ("text/csv; charset=UTF-8").
+
 ## [0.2.6] - 2020-09-12
 
 ### Added
