@@ -1,3 +1,4 @@
+import cgi
 import collections
 import csv
 import json
@@ -5,6 +6,7 @@ import pathlib
 import subprocess
 import sys
 import time
+import typing
 import uuid
 
 import arrow
@@ -20,6 +22,17 @@ from encapsia_api.lib import (
 )
 
 __all__ = ["EncapsiaApi", "EncapsiaApiTimeoutError", "FileDownloadResponse"]
+
+
+def _parse_http_header(
+    response: requests.Response, header: str
+) -> typing.Tuple[typing.Optional[str], dict]:
+    try:
+        content_type, content_options = cgi.parse_header(response.headers[header])
+    except KeyError:
+        return None, {}
+    else:
+        return content_type.lower(), content_options
 
 
 class EncapsiaApiTimeoutError(encapsia_api.EncapsiaApiError):
@@ -345,7 +358,8 @@ class TaskMixin:
             with self.call_api(
                 "get", ("tasks", namespace, task_id), stream=True
             ) as response:
-                if response.headers.get("Content-type") == "application/json":
+                content_type, _ = _parse_http_header(response, "Content-type")
+                if content_type == "application/json":
                     reply = response.json()
                     if reply.get("status") != "ok":
                         raise encapsia_api.EncapsiaApiError(response.text)
@@ -523,9 +537,10 @@ class ViewMixin:
             stream_response_to_file(response, filename)
             return FileDownloadResponse(filename, response.headers.get("Content-type"))
         else:
-            if response.headers.get("Content-type") == "application/json":
+            content_type, _ = _parse_http_header(response, "Content-type")
+            if content_type == "application/json":
                 return response.json()
-            elif typed_csv and response.headers.get("Content-type") == "text/csv":
+            elif typed_csv and content_type == "text/csv":
                 return CsvResponse(response.iter_lines(decode_unicode=True))
             else:
                 return response.text
