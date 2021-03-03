@@ -155,24 +155,26 @@ class ReplicationMixin:
 
 
 class BlobsMixin:
-    def upload_file_as_blob(self, filename, mime_type=None):
+    def upload_file_as_blob(self, filename, mime_type=None, zone=None):
         """Upload given file to blob, guessing mime_type if not given."""
         filename = pathlib.Path(filename)
         blob_id = uuid.uuid4().hex
         if mime_type is None:
             mime_type = guess_mime_type(filename)
         with filename.open("rb") as f:
-            self.upload_blob_data(blob_id, mime_type, f)
+            self.upload_blob_data(blob_id, mime_type, f, zone=zone)
         return blob_id
 
-    def upload_blob_data(self, blob_id, mime_type, blob_data):
+    def upload_blob_data(self, blob_id, mime_type, blob_data, zone=None):
         """Upload blob data."""
         extra_headers = {"Content-type": mime_type}
+        params = {"zone": zone} if zone else {}
         self.call_api(
             "put",
             ("blobs", blob_id),
             data=blob_data,
             extra_headers=extra_headers,
+            params=params,
             return_json=True,
             check_json_status=True,
         )
