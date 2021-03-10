@@ -5,9 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Upcoming]
+## [0.2.9] - 2021-03-10
 
 - Updated packages (including cryptography) for security.
+- Fix bugs in untar_to_dir and download_to_file which were both using kwarg `target` rather than `target_dir` or `target_file` respectively.
 
 ## [0.2.8] - 2021-03-03
 

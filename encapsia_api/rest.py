@@ -613,12 +613,12 @@ class MiscMixin:
         if untargz:
             with download_to_file(url, self.token) as tmp_filename:
                 with untar_to_dir(
-                    tmp_filename, target=target, cleanup=False
+                    tmp_filename, target_dir=target, cleanup=False
                 ) as directory:
                     return directory
         else:
             with download_to_file(
-                url, self.token, target=target, cleanup=False
+                url, self.token, target_file=target, cleanup=False
             ) as filename:
                 return filename
 
