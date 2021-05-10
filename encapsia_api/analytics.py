@@ -45,7 +45,7 @@ def analytics_connect():
         """
         callback(
             window.location.protocol + "//" + window.location.hostname,
-            sessionStorage.getItem("token")
+            localStorage.getItem("token")
         );
         """,
         callback=receive_url_and_token,
