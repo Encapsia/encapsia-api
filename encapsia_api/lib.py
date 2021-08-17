@@ -1,6 +1,7 @@
 import contextlib
 import mimetypes
 import pathlib
+import os
 import shutil
 import tarfile
 import tempfile
@@ -65,6 +66,18 @@ def temp_dir(cleanup=True):
     finally:
         if cleanup:
             shutil.rmtree(directory)
+
+
+@contextlib.contextmanager
+def make_temp_file_path(delete_after=True):
+    fd, name = tempfile.mkstemp()
+    os.close(fd)
+    path = pathlib.Path(name)
+    try:
+        yield path
+    finally:
+        if delete_after:
+            path.unlink(missing_ok=True)
 
 
 @contextlib.contextmanager
