@@ -7,7 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Next]
 
-- Switch to localStorage
+### Changed
+
+- Switch token management to localStorage
+
+### Added
+
+- Add an overwrite flag to make_package so that we only explicitly overwrite an existing package
 
 ## [0.2.9] - 2021-03-10
 

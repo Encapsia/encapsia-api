@@ -10,6 +10,8 @@ from typing import Iterable
 
 import toml
 
+from encapsia_api.lib import make_temp_file_path
+
 __all__ = ["PackageMaker"]
 
 
@@ -145,7 +147,7 @@ class PackageMaker:
             f"package-{type_name}-{instance_name}-{instance_version}.tar.gz"
         )
 
-    def make_package(self, directory=pathlib.Path("/tmp")):
+    def make_package(self, directory=pathlib.Path("/tmp"), overwrite=False):
         """Return .tar.gz of newly created package in given directory."""
         self._add_manifest()
         filename = directory / self.package_filename
@@ -158,9 +160,14 @@ class PackageMaker:
             tarinfo.name = name
             return tarinfo
 
-        with tarfile.open(filename, "w:gz") as tar:
-            # Just doing tar.add(self.directory) creates problems with empty top level directory.
-            # So iterate through the top level files and directories.
-            for f in self.directory.iterdir():
-                tar.add(f, filter=strip_root_dir)
-        return filename
+        with make_temp_file_path() as temp_file:
+            with tarfile.open(temp_file, "w:gz") as tar:
+                # Just doing tar.add(self.directory) creates problems with empty top level directory.
+                # So iterate through the top level files and directories.
+                for f in self.directory.iterdir():
+                    tar.add(f, filter=strip_root_dir)
+            if filename.exists() and not overwrite:
+                raise FileExistsError(f"{filename} already exists.")
+            temp_file.replace(filename)
+            # With python>=3.8, we can also return the result of Path.replace()
+            return filename

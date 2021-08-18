@@ -1,5 +1,6 @@
 import contextlib
 import mimetypes
+import os
 import pathlib
 import shutil
 import tarfile
@@ -65,6 +66,22 @@ def temp_dir(cleanup=True):
     finally:
         if cleanup:
             shutil.rmtree(directory)
+
+
+@contextlib.contextmanager
+def make_temp_file_path(delete_after=True):
+    fd, name = tempfile.mkstemp()
+    os.close(fd)
+    path = pathlib.Path(name)
+    try:
+        yield path
+    finally:
+        if delete_after:
+            try:
+                path.unlink()
+            except FileNotFoundError:
+                # Use path.unlink(missing_ok=True) once we stop supporting <3.8
+                pass
 
 
 @contextlib.contextmanager
