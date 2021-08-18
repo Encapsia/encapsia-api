@@ -77,7 +77,11 @@ def make_temp_file_path(delete_after=True):
         yield path
     finally:
         if delete_after:
-            path.unlink(missing_ok=True)
+            try:
+                path.unlink()
+            except FileNotFoundError:
+                # Use path.unlink(missing_ok=True) once we stop supporting <3.8
+                pass
 
 
 @contextlib.contextmanager

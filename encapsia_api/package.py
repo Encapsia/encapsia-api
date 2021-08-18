@@ -169,4 +169,6 @@ class PackageMaker:
                     tar.add(f, filter=strip_root_dir)
             if filename.exists() and not overwrite:
                 raise FileExistsError(f"{filename} already exists.")
-            return pathlib.Path(temp_file).replace(filename)
+            temp_file.replace(filename)
+            # With python>=3.8, we can also return the result of Path.replace()
+            return filename
