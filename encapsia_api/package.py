@@ -12,7 +12,6 @@ import toml
 
 from encapsia_api.lib import make_temp_file_path
 
-
 __all__ = ["PackageMaker"]
 
 

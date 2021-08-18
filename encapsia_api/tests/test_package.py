@@ -66,9 +66,8 @@ class TestPackageMaker:
         assert m["package_format"] == "1.0"
         assert sorted(m.keys()) == sorted(["package_format", "type", "instance"])
         assert sorted(m["type"].keys()) == sorted(["description", "name", "format"])
-        assert (
-            sorted(m["instance"].keys())
-            == sorted(["name", "description", "version", "created_by", "created_on"])
+        assert sorted(m["instance"].keys()) == sorted(
+            ["name", "description", "version", "created_by", "created_on"]
         )
         assert m["type"]["name"] == M["type"]["name"]
         assert m["type"]["format"] == M["type"]["format"]
@@ -88,9 +87,8 @@ class TestPackageMaker:
             p.add_file_from_string("b.txt", "bar")
             filename = p.make_package(tmp_path)
             with tarfile.open(filename, mode="r:gz") as tar:
-                assert (
-                    set(m.name for m in tar.getmembers())
-                    == set(["a.txt", "b.txt", "package.toml"])
+                assert set(m.name for m in tar.getmembers()) == set(
+                    ["a.txt", "b.txt", "package.toml"]
                 )
 
     def test_add_files_from_directory(self, tmp_path):
@@ -125,9 +123,8 @@ class TestPackageMaker:
         dir_content = list(tmp_path.iterdir())
         assert dir_content == [filename]
         with tarfile.open(filename, mode="r:gz") as tar:
-            assert (
-                set(m.name for m in tar.getmembers())
-                == set(["a.txt", "package.toml"])
+            assert set(m.name for m in tar.getmembers()) == set(
+                ["a.txt", "package.toml"]
             )
             assert tar.extractfile("a.txt").read().decode() == "foo"
 
@@ -142,8 +139,7 @@ class TestPackageMaker:
         dir_content = list(tmp_path.iterdir())
         assert dir_content == [filename1]
         with tarfile.open(filename1, mode="r:gz") as tar:
-            assert (
-                set(m.name for m in tar.getmembers())
-                == set(["a.txt", "package.toml"])
+            assert set(m.name for m in tar.getmembers()) == set(
+                ["a.txt", "package.toml"]
             )
             assert tar.extractfile("a.txt").read().decode() == "bar"

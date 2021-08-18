@@ -1,7 +1,7 @@
 import contextlib
 import mimetypes
-import pathlib
 import os
+import pathlib
 import shutil
 import tarfile
 import tempfile
