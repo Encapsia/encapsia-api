@@ -49,9 +49,10 @@ class PackageMaker:
 
     """Generic maker of packages, intended to be used as a context manager."""
 
-    def __init__(self, package_format: str, manifest_fields: dict):
+    def __init__(self, package_format: str, manifest_fields: dict, temp_dir=None):
         self.manifest = self._seed_manifest(package_format, manifest_fields)
-        self.directory = pathlib.Path(tempfile.mkdtemp())
+        self.temp_dir = temp_dir
+        self.directory = pathlib.Path(tempfile.mkdtemp(dir=temp_dir))
 
     def _seed_manifest(self, package_format: str, manifest: dict):
         if package_format != "1.0":
@@ -160,7 +161,7 @@ class PackageMaker:
             tarinfo.name = name
             return tarinfo
 
-        with make_temp_file_path() as temp_file:
+        with make_temp_file_path(dir=self.temp_dir) as temp_file:
             with tarfile.open(temp_file, "w:gz") as tar:
                 # Just doing tar.add(self.directory) creates problems with empty top level directory.
                 # So iterate through the top level files and directories.
