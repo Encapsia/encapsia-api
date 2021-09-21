@@ -7,6 +7,7 @@ import subprocess
 import sys
 import time
 import typing
+import urllib.parse
 import uuid
 
 import arrow
@@ -128,6 +129,11 @@ class Base:
         kwargs.setdefault("return_json", True)
         kwargs.setdefault("check_json_status", True)
         return self.call_api("delete", *args, **kwargs)
+
+    @property
+    def host(self):
+        """The host part of the URL, usually a FQDN."""
+        return urllib.parse.urlsplit(self.url).hostname
 
 
 class GeneralMixin:
