@@ -24,6 +24,12 @@ from encapsia_api.lib import (
 
 __all__ = ["EncapsiaApi", "EncapsiaApiTimeoutError", "FileDownloadResponse"]
 
+# recommended: slightly above (multiple of) initial TCP retransmit value of 3 seconds
+CONNECT_TIMEOUT = 3 * 2 + 0.05
+
+# timeout between receiving any two chunks of data, not the entire transfer
+READ_TIMEOUT = 300
+
 
 def _parse_http_header(
     response: requests.Response, header: str
@@ -64,6 +70,7 @@ class Base:
         expected_codes=(200, 201),
         params=None,
         stream=False,
+        timeout=(CONNECT_TIMEOUT, READ_TIMEOUT),
     ):
         headers = {
             "Accept": "application/json",
@@ -93,6 +100,7 @@ class Base:
             verify=True,
             allow_redirects=False,
             stream=stream,
+            timeout=timeout,
         )
         if response.status_code not in expected_codes:
             raise encapsia_api.EncapsiaApiError(
