@@ -105,3 +105,17 @@ class TestSystemUserMixin(unittest.TestCase):
         self.assertEqual(
             mixin.get_system_user_by_description("a different description"), None
         )
+
+
+class TestHostProperty(unittest.TestCase):
+    def test_localhost(self):
+        api = rest.EncapsiaApi("localhost", "token")
+        self.assertEqual(api.host, "localhost")
+
+    def test_fqdn(self):
+        api = rest.EncapsiaApi("my.domain.tld", "token")
+        self.assertEqual(api.host, "my.domain.tld")
+
+    def test_url(self):
+        api = rest.EncapsiaApi("https://snorri.icethree.com", "token")
+        self.assertEqual(api.host, "snorri.icethree.com")
