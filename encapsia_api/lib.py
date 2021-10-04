@@ -36,7 +36,7 @@ def stream_response_to_file(response, filename):
 
 
 @contextlib.contextmanager
-def download_to_file(url, token, target_file=None, cleanup=True):  # todo
+def download_to_file(url, token, target_file=None, cleanup=True):
     """Context manager for downloading a fixed file to a target_file."""
     if target_file is None:
         filename = pathlib.Path(tempfile.mkstemp()[1])
