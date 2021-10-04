@@ -1,6 +1,7 @@
 import cgi
 import collections
 import csv
+import io
 import json
 import pathlib
 import subprocess
@@ -21,14 +22,14 @@ from encapsia_api.lib import (
     stream_response_to_file,
     untar_to_dir,
 )
+from encapsia_api.resilient_request import (
+    DEFAULT_RETRIES,
+    DEFAULT_RETRY_DELAY,
+    DEFAULT_TIMEOUT,
+    resilient_request,
+)
 
 __all__ = ["EncapsiaApi", "EncapsiaApiTimeoutError", "FileDownloadResponse"]
-
-# recommended: slightly above (multiple of) initial TCP retransmit value of 3 seconds
-CONNECT_TIMEOUT = 3 * 2 + 0.05
-
-# timeout between receiving any two chunks of data, not the entire transfer
-READ_TIMEOUT = 300
 
 
 def _parse_http_header(
@@ -46,6 +47,10 @@ class EncapsiaApiTimeoutError(encapsia_api.EncapsiaApiError):
     pass
 
 
+class NotSet:
+    """Placeholder default value for parameters where `None` is a valid value"""
+
+
 class Base:
     def __init__(self, url, token, version="v1"):
         """Initialize with server URL (e.g. https://myserver.encapsia.com)."""
@@ -54,9 +59,43 @@ class Base:
         self.url = url.rstrip("/")
         self.token = token
         self.version = version
+        self._headers = {
+            "User-Agent": f"encapsia-api/{encapsia_api.__version__}",
+            "Accept": "application/json",
+            "Authorization": f"Bearer {token}",
+        }
+        self._timeout = DEFAULT_TIMEOUT
+        self._retries = DEFAULT_RETRIES
+        self._retry_delay = DEFAULT_RETRY_DELAY
 
     def __str__(self):
         return self.url
+
+    def __clone(self):
+        cls = self.__class__
+        return cls(self.url, self.token, self.version)
+
+    def replace(self, timeout=NotSet, retries=NotSet, retry_delay=NotSet):
+        """Return a new API object with new specified parameters.
+
+        `param timeout` Set timeout. See requests library for possible values.
+        `param retries` Maximum number of retries.
+        `param max_retry_delay` Maximum interval between retries.
+        `returns` New object with any of the specified parameter replaced.
+
+        Intended to be used as:
+
+            api.replace(retries=1).get(...)
+
+        """
+        clone = self.__clone()
+        if timeout is not NotSet:
+            clone._timeout = timeout
+        if retries is not NotSet:
+            clone._retries = retries
+        if retry_delay is not NotSet:
+            clone._retry_delay = retry_delay
+        return clone
 
     def call_api(
         self,
@@ -70,17 +109,9 @@ class Base:
         expected_codes=(200, 201),
         params=None,
         stream=False,
-        timeout=(CONNECT_TIMEOUT, READ_TIMEOUT),
+        is_idempotent=None,
+        on_retry=None,
     ):
-        headers = {
-            "Accept": "application/json",
-            "Authorization": "Bearer {}".format(self.token),
-            "User-Agent": f"encapsia-api/{encapsia_api.__version__}",
-        }
-        if json:
-            headers["Content-type"] = "application/json"
-        if extra_headers:
-            headers.update(extra_headers)
         if path_segments:
             segments = [self.url, self.version]
             if isinstance(path_segments, str):
@@ -90,7 +121,10 @@ class Base:
         else:
             segments = [self.url]
         url = "/".join(segments)
-        response = requests.request(
+        headers = dict(self._headers)
+        if extra_headers is not None:
+            headers.update(extra_headers)
+        response = resilient_request(
             method,
             url,
             data=data,
@@ -100,7 +134,11 @@ class Base:
             verify=True,
             allow_redirects=False,
             stream=stream,
-            timeout=timeout,
+            timeout=self._timeout,
+            retries=self._retries,
+            retry_delay=self._retry_delay,
+            is_idempotent=is_idempotent,
+            on_retry=on_retry,
         )
         if response.status_code not in expected_codes:
             raise encapsia_api.EncapsiaApiError(
@@ -152,13 +190,19 @@ class GeneralMixin:
 class ReplicationMixin:
     def get_hwm(self):
         answer = self.post(
-            ("sync", "out"), json=[], params=dict(all_zones=True, limit=0)
+            ("sync", "out"),
+            json=[],
+            params=dict(all_zones=True, limit=0),
+            is_idempotent=True,
         )
         return answer["result"]["hwm"]
 
     def get_assertions(self, hwm, blocksize):
         answer = self.post(
-            ("sync", "out"), json=hwm, params=dict(all_zones=True, limit=blocksize)
+            ("sync", "out"),
+            json=hwm,
+            params=dict(all_zones=True, limit=blocksize),
+            is_idempotent=True,
         )
         assertions = answer["result"]["assertions"]
         hwm = answer["result"]["hwm"]
@@ -166,6 +210,10 @@ class ReplicationMixin:
 
     def post_assertions(self, assertions):
         self.post(("sync", "in"), json=assertions)
+
+
+def _rewind(attempts, response, file_like):
+    file_like.seek(0, io.SEEK_SET)
 
 
 class BlobsMixin:
@@ -176,21 +224,31 @@ class BlobsMixin:
         if mime_type is None:
             mime_type = guess_mime_type(filename)
         with filename.open("rb") as f:
-            self.upload_blob_data(blob_id, mime_type, f, zone=zone)
+            # we allow blob upload to be retried on errors
+            self.upload_blob_data(
+                blob_id, mime_type, f, zone=zone, on_retry=_rewind, is_idempotent=True
+            )
         return blob_id
 
-    def upload_blob_data(self, blob_id, mime_type, blob_data, zone=None):
+    def upload_blob_data(
+        self,
+        blob_id,
+        mime_type,
+        blob_data,
+        zone=None,
+        on_retry=None,
+        is_idempotent=False,
+    ):
         """Upload blob data."""
         extra_headers = {"Content-type": mime_type}
         params = {"zone": zone} if zone else {}
-        self.call_api(
-            "put",
+        self.put(
             ("blobs", blob_id),
             data=blob_data,
             extra_headers=extra_headers,
             params=params,
-            return_json=True,
-            check_json_status=True,
+            on_retry=on_retry,
+            is_idempotent=is_idempotent,
         )
 
     def download_blob_to_file(self, blob_id, filename):
@@ -222,7 +280,7 @@ class BlobsMixin:
                 return response.content
         else:
             raise encapsia_api.EncapsiaApiError(
-                "Unable to download blob {}: {}".format(blob_id, response.status_code)
+                f"Unable to download blob {blob_id}: {response.status_code}"
             )
 
     def get_blobs(self):
@@ -243,7 +301,6 @@ class BlobsMixin:
         server_blob_ids = self.get_blob_ids_with_tag(tag)
         unwanted = set(server_blob_ids) - set(blob_ids)
         for blob_id in unwanted:
-            print("Untagging blob {} for tag {}".format(blob_id, tag))
             self.delete_blobtag(blob_id, tag)
 
 
@@ -340,7 +397,16 @@ class CsvResponse:
 
 
 class TaskMixin:
-    def run_task(self, namespace, function, params, upload=None, download=None):
+    def run_task(
+        self,
+        namespace,
+        function,
+        params,
+        upload=None,
+        download=None,
+        is_idempotent=False,
+        on_retry=None,
+    ):
         """Run task and return a means to poll for the result.
 
         If provided, `upload` should be str, bytes, or file-like object. Note that
@@ -364,6 +430,8 @@ class TaskMixin:
             params=params,
             extra_headers={"Content-type": content_type} if content_type else None,
             data=upload,
+            is_idempotent=is_idempotent,
+            on_retry=on_retry,
         )
         task_id = reply["result"]["task_id"]
 
@@ -411,9 +479,19 @@ class TaskMixin:
 
         return get_task_result, NoResultYet
 
-    def run_task_and_poll(self, *args, every=0.2, max_tries=100, **kwargs):
+    def run_task_and_poll(
+        self,
+        *args,
+        every=0.2,
+        max_tries=100,
+        is_idempotent=False,
+        on_retry=None,
+        **kwargs,
+    ):
         """Poll `run_task` until result obtained or max number of tries exceeded."""
-        poll, NoTaskResultYet = self.run_task(*args, **kwargs)
+        poll, NoTaskResultYet = self.run_task(
+            *args, is_idempotent=is_idempotent, on_retry=on_retry, **kwargs
+        )
         result = poll()
         n = 0
         while n < max_tries and result is NoTaskResultYet:
@@ -426,10 +504,17 @@ class TaskMixin:
             )
         return result
 
-    def run_plugins_task(self, name, params, data=None):
+    def run_plugins_task(
+        self, name, params, data=None, is_idempotent=False, on_retry=None
+    ):
         """Convenience function for calling pluginsmanager tasks."""
         reply = self.run_task_and_poll(
-            "pluginsmanager", "icepluginsmanager.{}".format(name), params, upload=data
+            "pluginsmanager",
+            f"icepluginsmanager.{name}",
+            params,
+            upload=data,
+            is_idempotent=is_idempotent,
+            on_retry=on_retry,
         )
         if reply["status"] == "ok":
             return reply["output"].strip()
@@ -438,7 +523,16 @@ class TaskMixin:
 
 
 class JobMixin:
-    def run_job(self, namespace, function, params, upload=None, download=None):
+    def run_job(
+        self,
+        namespace,
+        function,
+        params,
+        upload=None,
+        download=None,
+        is_idempotent=False,
+        on_retry=None,
+    ):
         """Run job and return a means to poll for the result.
 
         If provided, `upload` should be str, bytes, or file-like object. Note that
@@ -462,6 +556,8 @@ class JobMixin:
             params=params,
             extra_headers={"Content-type": content_type} if content_type else None,
             data=upload,
+            is_idempotent=is_idempotent,
+            on_retry=on_retry,
         )
         task_id = reply["result"]["task_id"]
         job_id = reply["result"]["job_id"]
@@ -510,6 +606,8 @@ class ViewMixin:
         upload=None,
         download=None,
         typed_csv=False,
+        is_idempotent=None,
+        on_retry=None,
     ):
         """Run a view function and return its result.
 
@@ -547,6 +645,8 @@ class ViewMixin:
             extra_headers={"Content-type": content_type} if content_type else None,
             data=upload,
             stream=True,
+            is_idempotent=is_idempotent,
+            on_retry=on_retry,
         )
         if download:
             filename = pathlib.Path(download)
@@ -563,7 +663,7 @@ class ViewMixin:
 
 
 class DbCtlMixin:
-    def dbctl_action(self, name, params):
+    def dbctl_action(self, name, params, is_idempotent=False):
         """Request a Database control action.
 
         Returns a function and a unique "no reply yet" object. When called,
@@ -572,7 +672,9 @@ class DbCtlMixin:
         function.
 
         """
-        reply = self.post(("dbctl", "action", name), params=params)
+        reply = self.post(
+            ("dbctl", "action", name), params=params, is_idempotent=is_idempotent
+        )
         action_id = reply["result"]["action_id"]
 
         class NoResultYet:
@@ -612,7 +714,13 @@ class DbCtlMixin:
         filename = pathlib.Path(filename)
         with filename.open("rb") as f:
             extra_headers = {"Content-type": "application/octet-stream"}
-            response = self.post(("dbctl", "data"), data=f, extra_headers=extra_headers)
+            response = self.post(
+                ("dbctl", "data"),
+                data=f,
+                extra_headers=extra_headers,
+                is_idempotent=True,
+                on_retry=_rewind,
+            )
             return response["result"]["handle"]
 
 
@@ -674,15 +782,15 @@ class ConfigMixin:
 
     def set_config(self, key, value):
         """Set server configuration value for given key."""
-        self.put(("config", key), json=value)
+        self.put(("config", key), json=value, is_idempotent=True)
 
     def set_config_multi(self, data):
         """Set multiple server configuration values from JSON dictionary."""
-        self.post("config", json=data)
+        self.post("config", json=data, is_idempotent=True)
 
     def delete_config(self, key):
         """Delete server configuration value associated with given key."""
-        self.delete(("config", key))
+        self.delete(("config", key), is_idempotent=True)
 
 
 class UserMixin:
@@ -699,12 +807,14 @@ class UserMixin:
 
 
 class SystemUserMixin:
-    def make_system_user_email_from_description(self, description):
+    @staticmethod
+    def make_system_user_email_from_description(description):
         """Construct and return system user email from given description."""
         encoded_description = description.lower().replace(" ", "-")
         return f"system@{encoded_description}.encapsia.com"
 
-    def make_system_user_role_name_from_description(self, description):
+    @staticmethod
+    def make_system_user_role_name_from_description(description):
         """Construct and return system user role name from given description."""
         return "System - " + description.capitalize()
 

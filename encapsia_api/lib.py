@@ -6,9 +6,8 @@ import shutil
 import tarfile
 import tempfile
 
-import requests
-
 import encapsia_api
+from encapsia_api.resilient_request import resilient_request
 
 
 def guess_mime_type(filename):
@@ -37,18 +36,20 @@ def stream_response_to_file(response, filename):
 
 
 @contextlib.contextmanager
-def download_to_file(url, token, target_file=None, cleanup=True):
+def download_to_file(url, token, target_file=None, cleanup=True):  # todo
     """Context manager for downloading a fixed file to a target_file."""
     if target_file is None:
         filename = pathlib.Path(tempfile.mkstemp()[1])
     else:
         filename = pathlib.Path(target_file)
     try:
-        headers = {"Accept": "*/*", "Authorization": "Bearer {}".format(token)}
-        response = requests.get(url, headers=headers, verify=True, stream=True)
+        headers = {"Accept": "*/*", "Authorization": f"Bearer {token}"}
+        response = resilient_request(
+            "get", url, headers=headers, verify=True, stream=True
+        )
         if response.status_code != 200:
             raise encapsia_api.EncapsiaApiError(
-                "{} {}".format(response.status_code, response.reason)
+                f"{response.status_code} {response.reason}"
             )
         stream_response_to_file(response, filename)
         yield filename
