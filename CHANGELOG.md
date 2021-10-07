@@ -5,15 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Next]
+## [next]
+
+Nothing yet.
+
+## [0.3.0]
 
 ### Changed
 
-- Switch token management to localStorage
+- Switch token management to localStorage in `analytics_connect()`.
+- API requests are now retried on errors, when possible.
 
 ### Added
 
-- Add an overwrite flag to make_package so that we only explicitly overwrite an existing package
+- Add an overwrite flag to `make_package()` so that we only explicitly overwrite an existing package.
+- Add ability to control location of temporary files.
 
 ## [0.2.9] - 2021-03-10
 
