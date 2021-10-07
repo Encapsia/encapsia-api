@@ -106,7 +106,7 @@ class PackageMaker:
                 f.write(data)
 
     def add_file_from_string(self, name: str, data: str):
-        """Add a file of given name from string data. """
+        """Add a file of given name from string data."""
         self._add_file_from_bytes_iterable(name, (data.encode(),))
 
     def add_file_from_bytes(self, name: str, data: bytes):

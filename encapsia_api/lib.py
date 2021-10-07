@@ -6,9 +6,8 @@ import shutil
 import tarfile
 import tempfile
 
-import requests
-
 import encapsia_api
+from encapsia_api.resilient_request import resilient_request
 
 
 def guess_mime_type(filename):
@@ -44,11 +43,13 @@ def download_to_file(url, token, target_file=None, cleanup=True):
     else:
         filename = pathlib.Path(target_file)
     try:
-        headers = {"Accept": "*/*", "Authorization": "Bearer {}".format(token)}
-        response = requests.get(url, headers=headers, verify=True, stream=True)
+        headers = {"Accept": "*/*", "Authorization": f"Bearer {token}"}
+        response = resilient_request(
+            "get", url, headers=headers, verify=True, stream=True
+        )
         if response.status_code != 200:
             raise encapsia_api.EncapsiaApiError(
-                "{} {}".format(response.status_code, response.reason)
+                f"{response.status_code} {response.reason}"
             )
         stream_response_to_file(response, filename)
         yield filename

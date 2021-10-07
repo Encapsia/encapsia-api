@@ -20,7 +20,13 @@ isort = "^5.4"
 flake8 = "^3.8"
 pytest = "^6.0.1"
 mypy = "^0.782"
+requests-mock = "^1.9.3"
 
 [build-system]
 requires = ["poetry>=1.0.5"]
 build-backend = "poetry.masonry.api"
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
