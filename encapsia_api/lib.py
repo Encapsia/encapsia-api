@@ -69,8 +69,8 @@ def temp_dir(cleanup=True):
 
 
 @contextlib.contextmanager
-def make_temp_file_path(delete_after=True):
-    fd, name = tempfile.mkstemp()
+def make_temp_file_path(delete_after=True, dir=None):
+    fd, name = tempfile.mkstemp(dir=dir)
     os.close(fd)
     path = pathlib.Path(name)
     try:
