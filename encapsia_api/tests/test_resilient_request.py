@@ -12,9 +12,9 @@ URL = "https://localhost/dev/null"
 RESPONSE = "ok"
 
 
-_HTTP_VERBS_IDEMPOTENT = ["get", "head", "options"]
+_HTTP_VERBS_IDEMPOTENT = ["get", "head", "options", "delete"]
 # we'll not consider put and delete as idempotent because of the ICE audit trail
-_HTTP_VERBS_NON_IDEMPOTENT = ["put", "delete", "post", "patch"]
+_HTTP_VERBS_NON_IDEMPOTENT = ["put", "post", "patch"]
 
 
 @pytest.fixture(

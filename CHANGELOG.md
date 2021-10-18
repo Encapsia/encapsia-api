@@ -9,7 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing yet.
 
-## [0.3.0]
+## [0.3.1] - 2021-10-19
+
+### Changed
+
+- Automatically retry DELETE requests too as they are idempotent (audit trail will not change if issued twice)
+
+## [0.3.0] - 2021-10-07
 
 ### Changed
 
