@@ -25,7 +25,7 @@ DEFAULT_RETRY_DELAY = (MIN_RETRY_DELAY, MAX_RETRY_DELAY)
 
 RECOVERABLE_ERROR_CODES = frozenset({503, 504})
 TIMEOUT_ERROR_CODES = frozenset({504})
-ENCAPSIA_IDEMPOTENT_VERBS = frozenset({"get", "head", "options"})
+ENCAPSIA_IDEMPOTENT_VERBS = frozenset({"get", "head", "options", "delete"})
 
 
 def _should_retry(result, is_idempotent: bool) -> bool:
