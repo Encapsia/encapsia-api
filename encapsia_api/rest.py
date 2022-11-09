@@ -283,8 +283,13 @@ class BlobsMixin:
                 f"Unable to download blob {blob_id}: {response.status_code}"
             )
 
-    def get_blobs(self):
-        return self.get("blobs")["result"]["blobs"]
+    def get_blobs(self, include_deleted=None, include_metadata=None):
+        return self.get(
+            "blobs", params=dict(
+                include_deleted=Boolean.to_str(include_deleted),
+                include_metadata=Boolean.to_str(include_metadata),
+            )
+        )["result"]["blobs"]
 
     def tag_blobs(self, blob_ids, tag):
         post_data = [{"blob_id": blob_id, "tag": tag} for blob_id in blob_ids]
@@ -350,11 +355,24 @@ class Boolean:
         "false": False,
     }
 
-    def from_str(self, value):
+    @classmethod
+    def from_str(cls, value):
         try:
-            return self.BOOLEAN_LOOKUP[value.lower()]
+            return cls.BOOLEAN_LOOKUP[value.lower()]
         except KeyError:
             raise ValueError(f"Cannot convert {value} to boolean.")
+
+    @classmethod
+    def to_str(cls, value):
+        """Uniformly return yes or no for truthy ``values``.
+        
+        Leave None unchanged so that URL flags aren't included in requests.
+        """
+        if isinstance(value, str):
+            value = cls.from_str(value)
+        if value is None:
+            return None
+        return "yes" if bool(value) else "no"
 
 
 class CsvResponse:
