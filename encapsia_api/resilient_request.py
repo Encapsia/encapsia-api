@@ -50,7 +50,7 @@ def _backoff_delay(count: int, delay: T.Union[float, T.Tuple[float, float]]) -> 
     else:
         min_delay, max_delay = MIN_RETRY_DELAY, delay
     d: float = max(
-        min_delay, min(MIN_MAX_DELAY_DISTANCE * 2 ** count, max_delay) * random.random()
+        min_delay, min(MIN_MAX_DELAY_DISTANCE * 2**count, max_delay) * random.random()
     )
     return d
 
