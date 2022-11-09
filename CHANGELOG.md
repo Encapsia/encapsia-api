@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing yet.
 
+## [0.3.2] - 2022-11-09
+
+### Changed
+
+- Allow sending include_deleted|metadata flags in get_blobs()
+
 ## [0.3.1] - 2021-10-19
 
 ### Changed
