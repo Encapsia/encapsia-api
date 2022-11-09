@@ -285,10 +285,11 @@ class BlobsMixin:
 
     def get_blobs(self, include_deleted=None, include_metadata=None):
         return self.get(
-            "blobs", params=dict(
+            "blobs",
+            params=dict(
                 include_deleted=Boolean.to_str(include_deleted),
                 include_metadata=Boolean.to_str(include_metadata),
-            )
+            ),
         )["result"]["blobs"]
 
     def tag_blobs(self, blob_ids, tag):
@@ -365,7 +366,7 @@ class Boolean:
     @classmethod
     def to_str(cls, value):
         """Uniformly return yes or no for truthy ``values``.
-        
+
         Leave None unchanged so that URL flags aren't included in requests.
         """
         if isinstance(value, str):
