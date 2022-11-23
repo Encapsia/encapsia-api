@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing yet.
 
+## [0.3.3] - ?
+
+### Fixed
+
+- `get_config()` raises a `KeyError` regardless of the error encountered, hiding
+  networking or authorization errors. Fixes #48.
+
 ## [0.3.2] - 2022-11-09
 
 ### Changed

@@ -794,10 +794,14 @@ class ConfigMixin:
 
     def get_config(self, key):
         """Return server configuration value for given key."""
-        try:
-            return self.get(("config", key))["result"][key]
-        except encapsia_api.EncapsiaApiError:
+        response = self.get(
+            ("config", key),
+            expected_codes=(200, 201, 404),
+            return_json=False,
+        )
+        if response.status_code == 404:
             raise KeyError(key)
+        return response.json()["result"][key]
 
     def set_config(self, key, value):
         """Set server configuration value for given key."""
