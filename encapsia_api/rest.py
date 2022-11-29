@@ -311,9 +311,8 @@ class BlobsMixin:
 
 
 class LoginMixin:
-    def login_transfer(self, user, lifespan=600):
-        data = {"lifespan": lifespan}
-        answer = self.post(("login", "transfer", user), json=data)
+    def login_transfer(self, user):
+        answer = self.post(("login", "transfer", user))
         return answer["result"]["token"]
 
     def login_federate(self, origin_server, origin_token, federated_group):
