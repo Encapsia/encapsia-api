@@ -771,7 +771,7 @@ class MiscMixin:
         url = "/".join([self.url, namespace, wheelhouse])
         with download_to_file(url, self.token) as tmp_filename:
             with untar_to_dir(tmp_filename) as tmp_dir:
-                subprocess.check_call(
+                proc = subprocess.run(
                     [
                         sys.executable,
                         "-m",
@@ -782,8 +782,12 @@ class MiscMixin:
                         tmp_dir,
                         "--requirement",
                         tmp_dir / "requirements.txt",
-                    ]
+                    ],
+                    check=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
                 )
+                print(proc.stdout.decode())
 
 
 class ConfigMixin:
