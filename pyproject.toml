@@ -4,9 +4,10 @@ version = "0.3.3"
 description = "Client API for talking to an Encapsia system."
 readme = "README.md"
 authors = ["Timothy Corbett-Clark <timothy.corbettclark@gmail.com>"]
+maintainers = ["Petre Mierluțiu <pmierlutiu@cmedtechnology.com"]
 license = "MIT"
 keywords = ["encapsia", "eSource", "EDC", "Clinical Trials"]
-homepage = "https://github.com/tcorbettclark/encapsia-api"
+homepage = "https://github.com/Encapsia/encapsia-api"
 
 [tool.poetry.dependencies]
 python = "^3.7"
