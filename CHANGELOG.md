@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Drop the usage of lifespan parameter during login_transfer(), since ice-core does not
+- Drop the lifespan parameter of `login_transfer()`, since Core does not
   use it (Bug #32)
 
 ### Fixed
