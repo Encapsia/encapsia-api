@@ -11,3 +11,4 @@ dist/
 .eggs/
 .tox/
 .vscode/
+.python-version
