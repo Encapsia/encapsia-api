@@ -1,8 +1,8 @@
 # Encapsia API Library
 
-![Tests](https://github.com/tcorbettclark/encapsia-api/workflows/Tests/badge.svg)
+![Tests](https://github.com/encapsia/encapsia-api/workflows/Tests/badge.svg)
 
-[![Known Vulnerabilities](https://snyk.io/test/github/tcorbettclark/encapsia-api/badge.svg?targetFile=requirements.txt)](https://snyk.io/test/github/tcorbettclark/encapsia-api?targetFile=requirements.txt)
+[![Known Vulnerabilities](https://snyk.io/test/github/encapsia/encapsia-api/badge.svg?targetFile=requirements.txt)](https://snyk.io/test/github/encapsia/encapsia-api?targetFile=requirements.txt)
 
 REST API for working with Encapsia.
 
