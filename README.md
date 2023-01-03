@@ -1,6 +1,6 @@
 # Encapsia API Library
 
-![Tests](https://github.com/encapsia/encapsia-api/workflows/Tests/badge.svg)
+![Workflows](https://github.com/encapsia/encapsia-api/actions/workflows/main.yml/badge.svg)
 
 [![Known Vulnerabilities](https://snyk.io/test/github/encapsia/encapsia-api/badge.svg?targetFile=requirements.txt)](https://snyk.io/test/github/encapsia/encapsia-api?targetFile=requirements.txt)
 
