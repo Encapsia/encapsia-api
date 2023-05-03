@@ -33,13 +33,15 @@ class TestMakeValidName:
 
 
 class TestPackageMaker:
-
-    MANIFEST_FIELDS = dict(
-        type=dict(name="test-type", format="1.0", description="whatever"),
-        instance=dict(
-            name="test instance", description="", version="1.2.3", created_by="fred"
-        ),
-    )
+    MANIFEST_FIELDS = {
+        "type": {"name": "test-type", "format": "1.0", "description": "whatever"},
+        "instance": {
+            "name": "test instance",
+            "description": "",
+            "version": "1.2.3",
+            "created_by": "fred",
+        },
+    }
     PACKAGE_FILENAME = "package-test_type-test_instance-1.2.3.tar.gz"
 
     def test_supported_package_formats(self):
@@ -56,7 +58,7 @@ class TestPackageMaker:
             filename = p.make_package(tmp_path)
             assert filename.name == self.PACKAGE_FILENAME
             with tarfile.open(filename, mode="r:gz") as tar:
-                assert set(m.name for m in tar.getmembers()) == set(["package.toml"])
+                assert {m.name for m in tar.getmembers()} == {"package.toml"}
 
     def test_manifest_contents(self, tmp_path):
         with package.PackageMaker("1.0", self.MANIFEST_FIELDS) as p:
@@ -77,7 +79,7 @@ class TestPackageMaker:
         assert m["instance"]["created_by"] == M["instance"]["created_by"]
 
     def test_cannot_overwrite_manifest_file(self):
-        with package.PackageMaker("1.0", self.MANIFEST_FIELDS) as p:
+        with package.PackageMaker("1.0", self.MANIFEST_FIELDS) as p:  # noqa: SIM117
             with pytest.raises(ValueError):
                 p.add_file_from_string("package.toml", "whatever")
 
@@ -87,9 +89,11 @@ class TestPackageMaker:
             p.add_file_from_string("b.txt", "bar")
             filename = p.make_package(tmp_path)
             with tarfile.open(filename, mode="r:gz") as tar:
-                assert set(m.name for m in tar.getmembers()) == set(
-                    ["a.txt", "b.txt", "package.toml"]
-                )
+                assert {m.name for m in tar.getmembers()} == {
+                    "a.txt",
+                    "b.txt",
+                    "package.toml",
+                }
 
     def test_add_files_from_directory(self, tmp_path):
         tmp_dir = tmp_path / "source"
@@ -101,15 +105,13 @@ class TestPackageMaker:
             p.add_all_files_from_directory(tmp_dir)
             filename = p.make_package(tmp_path)
             with tarfile.open(filename, mode="r:gz") as tar:
-                tar_files = set(m.name for m in tar.getmembers())
-                expected_files = set(
-                    [
-                        "a.txt",
-                        "a_directory",
-                        "a_directory/b.txt",
-                        "package.toml",
-                    ]
-                )
+                tar_files = {m.name for m in tar.getmembers()}
+                expected_files = {
+                    "a.txt",
+                    "a_directory",
+                    "a_directory/b.txt",
+                    "package.toml",
+                }
                 assert tar_files == expected_files
 
     def test_make_same_package_fails(self, tmp_path):
@@ -123,9 +125,7 @@ class TestPackageMaker:
         dir_content = list(tmp_path.iterdir())
         assert dir_content == [filename]
         with tarfile.open(filename, mode="r:gz") as tar:
-            assert set(m.name for m in tar.getmembers()) == set(
-                ["a.txt", "package.toml"]
-            )
+            assert {m.name for m in tar.getmembers()} == {"a.txt", "package.toml"}
             assert tar.extractfile("a.txt").read().decode() == "foo"
 
     def test_make_same_package_overwrites(self, tmp_path):
@@ -139,7 +139,5 @@ class TestPackageMaker:
         dir_content = list(tmp_path.iterdir())
         assert dir_content == [filename1]
         with tarfile.open(filename1, mode="r:gz") as tar:
-            assert set(m.name for m in tar.getmembers()) == set(
-                ["a.txt", "package.toml"]
-            )
+            assert {m.name for m in tar.getmembers()} == {"a.txt", "package.toml"}
             assert tar.extractfile("a.txt").read().decode() == "bar"

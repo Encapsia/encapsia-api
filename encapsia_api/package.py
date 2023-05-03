@@ -1,5 +1,4 @@
 import datetime
-import os
 import pathlib
 import re
 import shutil
@@ -11,6 +10,7 @@ from typing import Iterable
 import toml
 
 from encapsia_api.lib import make_temp_file_path
+
 
 __all__ = ["PackageMaker"]
 
@@ -74,7 +74,7 @@ class PackageMaker:
                 },
             }
         except KeyError as e:
-            raise ValueError(f"Missing required manifest field: {e!s} ")
+            raise ValueError(f"Missing required manifest field: {e!s} ") from e
 
     def __enter__(self):
         return self
@@ -126,18 +126,7 @@ class PackageMaker:
             raise ValueError(
                 "The manifest file is added automatically and cannot be overridden."
             )
-        # Ideally we would used shutil.copytree with the dirs_exit_ok option, but that's Python 3.8 and above.
-        # So instead we do it by hand. Note the problem is only with the top level directory.
-        for child in directory.iterdir():
-            new_name = self.directory / os.path.relpath(child, directory)
-            if child.is_file():
-                child.rename(new_name)
-            elif child.is_dir():
-                shutil.copytree(child, new_name)
-            else:
-                raise ValueError(
-                    f"Packages can only contain files or directories. The following is neither: {child}"
-                )
+        shutil.copytree(directory, self.directory, dirs_exist_ok=True, symlinks=False)
 
     @property
     def package_filename(self) -> pathlib.Path:
@@ -148,7 +137,7 @@ class PackageMaker:
             f"package-{type_name}-{instance_name}-{instance_version}.tar.gz"
         )
 
-    def make_package(self, directory=pathlib.Path("/tmp"), overwrite=False):
+    def make_package(self, directory: pathlib.Path, overwrite=False):
         """Return .tar.gz of newly created package in given directory."""
         self._add_manifest()
         filename = directory / self.package_filename
@@ -163,12 +152,11 @@ class PackageMaker:
 
         with make_temp_file_path(dir=self.temp_dir) as temp_file:
             with tarfile.open(temp_file, "w:gz") as tar:
-                # Just doing tar.add(self.directory) creates problems with empty top level directory.
-                # So iterate through the top level files and directories.
+                # Just doing tar.add(self.directory) creates problems with empty top
+                # level directory. So iterate through the top level files and
+                # directories.
                 for f in self.directory.iterdir():
                     tar.add(f, filter=strip_root_dir)
             if filename.exists() and not overwrite:
                 raise FileExistsError(f"{filename} already exists.")
-            temp_file.replace(filename)
-            # With python>=3.8, we can also return the result of Path.replace()
-            return filename
+            return temp_file.replace(filename)

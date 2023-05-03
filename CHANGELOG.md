@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 
+
+### Added
+
+- Added `logout()` method to delete the current token.
+- Added a `login_extend(duration)` method to call `/v1/login/extend/<duration>`. Closes
+  #53.
+- Build: Added `pre-commit` hooks and added github action to run them.
+  
+### Changed
+
+- Build: move black, mypy and pytest configs into pyproject.toml, added type stubs for
+  libraries.
+- Build: remove isort and flake8 and replace with `ruff`.
+- Refactor: rename `lib.temp_dir` to `lib.make_temp_dir_path`.
+- Changed minimum Python version to 3.8 (stop supporting 3.7 which will be end-of-life
+  in June 2023).
+- Refactor: use a few python 3.8 features, replacing "manual" solutions.
+- Refactor: replace `dict()` and `set()` calls with dict and set literals.
+- Refactor: replaced mutable default value of arguments (like `[]` or `{}`).
+- Changed `PackageMaker.make_package` to require a `directory` argument (not defaulting
+  to `/tmp`).
+- Changed `PluginMaker` methods `make_plugin()` and `make_and_upload_plugin()` to use a
+  system-default temporary directory instead of hard-coded `/tmp`.
+
 ## [0.3.3] - 2022-12-06
 
 ### Changed

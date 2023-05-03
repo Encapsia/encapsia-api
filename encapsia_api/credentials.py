@@ -5,6 +5,7 @@ import toml
 
 import encapsia_api
 
+
 __all__ = ["CredentialsStore", "discover_credentials"]
 
 
@@ -72,10 +73,10 @@ class CredentialsStore:
 def _get_env_var(name):
     try:
         return os.environ[name]
-    except KeyError:
+    except KeyError as e:
         raise encapsia_api.EncapsiaApiError(
             f"Environment variable {name} does not exist!"
-        )
+        ) from e
 
 
 def discover_credentials(host=None):
@@ -86,10 +87,10 @@ def discover_credentials(host=None):
         store = CredentialsStore()
         try:
             url, token = store.get(host)
-        except KeyError:
+        except KeyError as e:
             raise encapsia_api.EncapsiaApiError(
                 f"Cannot find entry for '{host}' in encapsia credentials file."
-            )
+            ) from e
     else:
         url, token = _get_env_var("ENCAPSIA_URL"), _get_env_var("ENCAPSIA_TOKEN")
     return url, token

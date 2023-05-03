@@ -29,6 +29,7 @@ from encapsia_api.resilient_request import (
     resilient_request,
 )
 
+
 __all__ = ["EncapsiaApi", "EncapsiaApiTimeoutError", "FileDownloadResponse"]
 
 
@@ -192,7 +193,7 @@ class ReplicationMixin:
         answer = self.post(
             ("sync", "out"),
             json=[],
-            params=dict(all_zones=True, limit=0),
+            params={"all_zones": True, "limit": 0},
             is_idempotent=True,
         )
         return answer["result"]["hwm"]
@@ -201,7 +202,7 @@ class ReplicationMixin:
         answer = self.post(
             ("sync", "out"),
             json=hwm,
-            params=dict(all_zones=True, limit=blocksize),
+            params={"all_zones": True, "limit": blocksize},
             is_idempotent=True,
         )
         assertions = answer["result"]["assertions"]
@@ -286,10 +287,10 @@ class BlobsMixin:
     def get_blobs(self, include_deleted=None, include_metadata=None):
         return self.get(
             "blobs",
-            params=dict(
-                include_deleted=Boolean.to_str(include_deleted),
-                include_metadata=Boolean.to_str(include_metadata),
-            ),
+            params={
+                "include_deleted": Boolean.to_str(include_deleted),
+                "include_metadata": Boolean.to_str(include_metadata),
+            },
         )["result"]["blobs"]
 
     def tag_blobs(self, blob_ids, tag):
@@ -333,6 +334,13 @@ class LoginMixin:
         answer = self.post(("login", "again"), json=data)
         return answer["result"]["token"]
 
+    def login_extend(self, duration):
+        answer = self.put(("login", "extend", str(duration)))
+        return answer["result"]["token"]
+
+    def logout(self):
+        self.delete("logout")
+
 
 class FileDownloadResponse:
     """Object returned from a task or view when responding with a downloaded file."""
@@ -343,7 +351,6 @@ class FileDownloadResponse:
 
 
 class Boolean:
-
     BOOLEAN_LOOKUP = {
         "yes": True,
         "y": True,
@@ -359,8 +366,8 @@ class Boolean:
     def from_str(cls, value):
         try:
             return cls.BOOLEAN_LOOKUP[value.lower()]
-        except KeyError:
-            raise ValueError(f"Cannot convert {value} to boolean.")
+        except KeyError as e:
+            raise ValueError(f"Cannot convert {value} to boolean.") from e
 
     @classmethod
     def to_str(cls, value):
@@ -394,7 +401,8 @@ class CsvResponse:
         raw_headers = next(self.reader)
         headers = []
         type_casters = {}
-        for i, header in enumerate(raw_headers):
+        # TODO: why does this use enumerate and ignores the counter?
+        for _i, header in enumerate(raw_headers):
             name, *as_type = header.split("__", 1)
             headers.append(name)
             as_type = as_type[0] if as_type else None
@@ -432,10 +440,10 @@ class TaskMixin:
 
         Returns a `get_task_result` function and a unique `NoResultYet` object.
 
-        When called, the `get_task_result` function will return the `NoResultYet`
-        object until a reply is available. Once a reply is available, the function will
-        either return the response directly as unicode text or stream it to a file provided
-        by the `download` argument if provided. In that case (and only in that case), a
+        When called, the `get_task_result` function will return the `NoResultYet` object
+        until a reply is available. Once a reply is available, the function will either
+        return the response directly as unicode text or stream it to a file provided by
+        the `download` argument if provided. In that case (and only in that case), a
         `FileDownloadResponse` response object is returned to indicate success and
         provide the `mime_type`.
 
@@ -483,17 +491,16 @@ class TaskMixin:
                         )
                     else:
                         return NoResultYet
-                else:
+                elif download:
                     # Stream the response directly to the given file.
                     # Note we don't care whether this is JSON, CSV, or some other type.
-                    if download:
-                        filename = pathlib.Path(download)
-                        stream_response_to_file(response, filename)
-                        return FileDownloadResponse(
-                            filename, response.headers.get("Content-type")
-                        )
-                    else:
-                        return response.text
+                    filename = pathlib.Path(download)
+                    stream_response_to_file(response, filename)
+                    return FileDownloadResponse(
+                        filename, response.headers.get("Content-type")
+                    )
+                else:
+                    return response.text
 
         return get_task_result, NoResultYet
 
@@ -618,8 +625,8 @@ class ViewMixin:
         self,
         namespace,
         function,
-        view_arguments=[],
-        view_options={},
+        view_arguments=None,
+        view_options=None,
         use_post=False,
         upload=None,
         download=None,
@@ -644,21 +651,23 @@ class ViewMixin:
         provide the `mime_type`.
 
         If no `download` is requested then decoding is performed if the content-type is
-        either CSV or JSON. JSON is returned decoded as Python objects.
-        In the case of CSV, if `typed_csv` is False then the raw text is returned unparsed. If
-        `typed_csv` is True then an iterable CsvResponse object is returned. This is memory
-        efficient, and tries to coerce the data into types according to a column
-        naming convention of the form <name>__<type>. Supported types are
-        integer, float, boolean, datetime, and json. Otherwise, if neither JSON or CSV
-        then the response is unicode text.
+        either CSV or JSON. JSON is returned decoded as Python objects. In the case of
+        CSV, if `typed_csv` is False then the raw text is returned unparsed. If
+        `typed_csv` is True then an iterable CsvResponse object is returned. This is
+        memory efficient, and tries to coerce the data into types according to a column
+        naming convention of the form <name>__<type>. Supported types are integer,
+        float, boolean, datetime, and json. Otherwise, if neither JSON or CSV then the
+        response is unicode text.
 
         Any errors result in an exception being raised.
 
         """
+        view_arguments = [] if view_arguments is None else view_arguments
+        view_options = {} if view_options is None else view_options
         content_type = guess_upload_content_type(upload)
         response = self.call_api(
             "POST" if use_post else "GET",
-            ("views", namespace, function) + tuple(view_arguments),
+            ("views", namespace, function, *tuple(view_arguments)),
             params=view_options,
             extra_headers={"Content-type": content_type} if content_type else None,
             data=upload,
@@ -751,11 +760,10 @@ class MiscMixin:
         """
         url = "/".join([self.url, url_path])
         if untargz:
-            with download_to_file(url, self.token) as tmp_filename:
-                with untar_to_dir(
-                    tmp_filename, target_dir=target, cleanup=False
-                ) as directory:
-                    return directory
+            with download_to_file(url, self.token) as tmp_filename, untar_to_dir(
+                tmp_filename, target_dir=target, cleanup=False
+            ) as directory:
+                return directory
         else:
             with download_to_file(
                 url, self.token, target_file=target, cleanup=False
@@ -769,25 +777,26 @@ class MiscMixin:
 
         """
         url = "/".join([self.url, namespace, wheelhouse])
-        with download_to_file(url, self.token) as tmp_filename:
-            with untar_to_dir(tmp_filename) as tmp_dir:
-                proc = subprocess.run(
-                    [
-                        sys.executable,
-                        "-m",
-                        "pip",
-                        "install",
-                        "--force",
-                        "--find-links",
-                        tmp_dir,
-                        "--requirement",
-                        tmp_dir / "requirements.txt",
-                    ],
-                    check=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                )
-                print(proc.stdout.decode())
+        with download_to_file(url, self.token) as tmp_filename, untar_to_dir(
+            tmp_filename
+        ) as tmp_dir:
+            proc = subprocess.run(
+                [  # noqa: S603
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "install",
+                    "--force",
+                    "--find-links",
+                    tmp_dir,
+                    "--requirement",
+                    tmp_dir / "requirements.txt",
+                ],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+            )
+            print(proc.stdout.decode())
 
 
 class ConfigMixin:
@@ -906,6 +915,7 @@ class SystemUserMixin:
         for user in self.get_system_users():
             if user.description == description:
                 return user
+        return None
 
 
 class SuperUserMixin:

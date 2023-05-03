@@ -1,5 +1,6 @@
 import encapsia_api
 
+
 __all__ = ["analytics_connect"]
 
 
@@ -20,8 +21,9 @@ def analytics_connect():
         # etc
 
 
-    NB: Because of the way the encapsia token is fetched from the user's current session, make sure
-    you have seen the output message before trying to use the returned object!!!
+    NB: Because of the way the encapsia token is fetched from the user's current
+    session, make sure you have seen the output message before trying to use the
+    returned object!!!
 
     """
     try:
@@ -30,11 +32,13 @@ def analytics_connect():
         import jp_proxy_widget
     except ModuleNotFoundError:
         raise RuntimeError(
-            "Cannot find jp_proxy_widget module. Are you using a standard Encapsia Analytics environment?"
-        )
+            "Cannot find jp_proxy_widget module. Are you using a standard "
+            "Encapsia Analytics environment?"
+        ) from None
 
-    # Create the api object now, and then re-initialise in the callback called from the browser code.
-    # This allows us to populate it with the settings from the user's own browser environment.
+    # Create the api object now, and then re-initialise in the callback called from the
+    # browser code. This allows us to populate it with the settings from the user's own
+    # browser environment.
     api = encapsia_api.EncapsiaApi("https://placeholder", "placeholder")
 
     def receive_url_and_token(url, token):
