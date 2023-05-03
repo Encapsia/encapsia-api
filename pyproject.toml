@@ -9,6 +9,7 @@ license = "MIT"
 keywords = ["encapsia", "eSource", "EDC", "Clinical Trials"]
 homepage = "https://github.com/Encapsia/encapsia-api"
 
+
 [tool.poetry.dependencies]
 python = "^3.8"
 requests = {version = "^2.24",extras = ["security"]}
