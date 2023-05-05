@@ -59,7 +59,7 @@ def download_to_file(url, token, target_file=None, cleanup=True):
 
 
 @contextlib.contextmanager
-def temp_dir(cleanup=True):
+def make_temp_dir_path(cleanup=True):
     """Context manager for creating a temporary directory."""
     directory = pathlib.Path(tempfile.mkdtemp())
     try:
@@ -70,19 +70,15 @@ def temp_dir(cleanup=True):
 
 
 @contextlib.contextmanager
-def make_temp_file_path(delete_after=True, dir=None):
+def make_temp_file_path(cleanup=True, dir=None):
     fd, name = tempfile.mkstemp(dir=dir)
     os.close(fd)
     path = pathlib.Path(name)
     try:
         yield path
     finally:
-        if delete_after:
-            try:
-                path.unlink()
-            except FileNotFoundError:
-                # Use path.unlink(missing_ok=True) once we stop supporting <3.8
-                pass
+        if cleanup:
+            path.unlink(missing_ok=True)
 
 
 @contextlib.contextmanager
@@ -102,7 +98,7 @@ def untar_to_dir(filename, target_dir=None, cleanup=True):
             if cleanup:
                 shutil.rmtree(target_dir)
     else:
-        with temp_dir(cleanup=cleanup) as directory:
+        with make_temp_dir_path(cleanup=cleanup) as directory:
             tar = tarfile.open(filename)
             tar.extractall(directory)
             tar.close()

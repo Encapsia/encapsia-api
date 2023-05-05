@@ -7,6 +7,7 @@ import requests
 
 from encapsia_api import resilient_request
 
+
 # commonly used URL and response for mocker and request
 URL = "https://localhost/dev/null"
 RESPONSE = "ok"
@@ -42,22 +43,22 @@ def non_idempotent_http_verb(request):
 
 
 _ALWAYS_RETRIABLE_ERROR_RESPONSES = [
-    dict(exc=requests.exceptions.ConnectionError),
-    dict(exc=requests.exceptions.ConnectTimeout),
-    dict(status_code=503),
+    {"exc": requests.exceptions.ConnectionError},
+    {"exc": requests.exceptions.ConnectTimeout},
+    {"status_code": 503},
 ]
 _TIMEOUT_ERROR_RESPONSES = [
-    dict(exc=requests.exceptions.Timeout),
-    dict(status_code=504),
+    {"exc": requests.exceptions.Timeout},
+    {"status_code": 504},
 ]
 _NON_RETRIABLE_ERROR_RESPONSES = [
-    dict(exc=requests.exceptions.TooManyRedirects),
-    dict(status_code=401),
-    dict(status_code=403),
-    dict(status_code=404),
-    dict(status_code=500),
-    dict(status_code=501),
-    dict(status_code=502),
+    {"exc": requests.exceptions.TooManyRedirects},
+    {"status_code": 401},
+    {"status_code": 403},
+    {"status_code": 404},
+    {"status_code": 500},
+    {"status_code": 501},
+    {"status_code": 502},
 ]
 
 

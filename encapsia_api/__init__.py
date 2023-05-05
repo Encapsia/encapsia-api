@@ -1,15 +1,15 @@
 #: Keep in sync with git tag and package version in pyproject.toml.
-__version__ = "0.3.3"
+__version__ = "0.4.0"
 
 
-class EncapsiaApiError(RuntimeError):  # NOQA
+class EncapsiaApiError(RuntimeError):
     def __init__(self, message, payload=None):
         super().__init__(message)
         self.message = message
         self.payload = payload
 
 
-class EncapsiaApiFailedTaskError(EncapsiaApiError):  # NOQA
+class EncapsiaApiFailedTaskError(EncapsiaApiError):
     pass
 
 

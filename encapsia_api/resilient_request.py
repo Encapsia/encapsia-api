@@ -5,6 +5,7 @@ import typing as T
 import requests
 from requests.exceptions import ConnectionError, ConnectTimeout, Timeout
 
+
 # recommended: slightly above (multiple of) initial TCP retransmit value of 3 seconds
 CONNECT_TIMEOUT = 3 * 2 + 0.05
 
@@ -50,7 +51,9 @@ def _backoff_delay(count: int, delay: T.Union[float, T.Tuple[float, float]]) -> 
     else:
         min_delay, max_delay = MIN_RETRY_DELAY, delay
     d: float = max(
-        min_delay, min(MIN_MAX_DELAY_DISTANCE * 2**count, max_delay) * random.random()
+        min_delay,
+        min(MIN_MAX_DELAY_DISTANCE * 2**count, max_delay)
+        * random.random(),  # noqa: S311
     )
     return d
 

@@ -3,6 +3,7 @@ import uuid
 from .credentials import discover_credentials
 from .rest import EncapsiaApi
 
+
 __all__ = ["get_api_from_api_or_host", "make_uuid"]
 
 

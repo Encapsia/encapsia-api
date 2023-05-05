@@ -1,0 +1,71 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: check-toml
+      - id: check-yaml
+      - id: end-of-file-fixer
+        exclude: |
+          (?x)^(
+          tests/test_data_raw_.*|
+          )$
+      - id: trailing-whitespace
+        exclude: |
+          (?x)^(
+          .*\.(md|rst)|
+          tests/test_data_raw_.*|
+          )$
+      - id: mixed-line-ending
+        args: [--fix=lf]
+        exclude: |
+          (?x)^(
+          docs/make.bat|
+          )$
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: https://github.com/ambv/black
+    rev: 23.3.0
+    hooks:
+      - id: black
+        types: [python]
+
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    # Ruff version.
+    rev: 'v0.0.264'
+    hooks:
+      - id: ruff
+
+  - repo: https://github.com/python-poetry/poetry
+    rev: "1.4.0"
+    hooks:
+      - id: poetry-check
+        name: poetry-check
+        description: run poetry check to validate config
+        entry: poetry check
+        language: python
+        language_version: python3
+        pass_filenames: false
+        files: ^pyproject.toml$
+      - id: poetry-lock
+        name: poetry-lock
+        description: run poetry lock to update lock file
+        entry: poetry lock
+        language: python
+        language_version: python3
+        pass_filenames: false
+      - id: poetry-export
+        name: poetry-export
+        description: run poetry export to sync lock file with requirements.txt
+        entry: poetry export
+        language: python
+        language_version: python3
+        pass_filenames: false
+        files: ^poetry.lock$
+        args: ["-f", "requirements.txt", "-o", "requirements.txt"]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: 'v1.2.0'  # Use the sha / tag you want to point at
+    hooks:
+    -   id: mypy
+        additional_dependencies: ["types-toml", "types-urllib3", "types-requests"]

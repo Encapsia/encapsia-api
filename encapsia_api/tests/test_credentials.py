@@ -54,15 +54,15 @@ class TestCredentialStore(unittest.TestCase):
         store = credentials.CredentialsStore()
         store.set("foo", "https://a.b.c", "a-token")
         store.set("bar", "https://a.b.c", "a-token")
-        self.assertEqual(set(store.get_labels()), set(["foo", "bar"]))
+        self.assertEqual(set(store.get_labels()), {"foo", "bar"})
 
     def test_can_remove_from_get_labels(self):
         store = credentials.CredentialsStore()
         store.set("foo", "https://a.b.c", "a-token")
         store.set("bar", "https://a.b.c", "a-token")
-        self.assertEqual(set(store.get_labels()), set(["foo", "bar"]))
+        self.assertEqual(set(store.get_labels()), {"foo", "bar"})
         store.remove("foo")
-        self.assertEqual(set(store.get_labels()), set(["bar"]))
+        self.assertEqual(set(store.get_labels()), {"bar"})
         store.remove("bar")
         self.assertEqual(len(store.get_labels()), 0)
 
@@ -86,6 +86,4 @@ class TestCredentialStore(unittest.TestCase):
         self.assertEqual(len(store.get_labels()), 0)
         # But you can get them too if you ask nicely.
         self.assertEqual(len(store.get_labels(include_cleared_tokens=True)), 1)
-        self.assertEqual(
-            set(store.get_labels(include_cleared_tokens=True)), set(["foo"])
-        )
+        self.assertEqual(set(store.get_labels(include_cleared_tokens=True)), {"foo"})
