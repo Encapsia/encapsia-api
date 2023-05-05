@@ -667,7 +667,7 @@ class ViewMixin:
         content_type = guess_upload_content_type(upload)
         response = self.call_api(
             "POST" if use_post else "GET",
-            ("views", namespace, function, *tuple(view_arguments)),
+            ("views", namespace, function, *view_arguments),
             params=view_options,
             extra_headers={"Content-type": content_type} if content_type else None,
             data=upload,
