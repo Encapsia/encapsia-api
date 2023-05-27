@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2023-05-27
+
+### Changed
+
+- Dependency updates, mainly to address CVE-2023-32681 in python-requests.
+- Loosened up requirements specifications by using e.g. `foo>=1.2` rather than
+  `foo^1.2` so that clients are less constrained by this library's dependencies.
+
 ## [0.4.0] - 2023-05-05
 
 ### Added
