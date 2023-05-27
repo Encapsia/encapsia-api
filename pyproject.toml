@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "encapsia-api"
-version = "0.4.1"
+version = "0.4.2"
 description = "Client API for talking to an Encapsia system."
 readme = "README.md"
 authors = ["Timothy Corbett-Clark <timothy.corbettclark@gmail.com>"]
@@ -8,7 +8,6 @@ maintainers = ["Petre Mierluțiu <pmierlutiu@cmedtechnology.com>"]
 license = "MIT"
 keywords = ["encapsia", "eSource", "EDC", "Clinical Trials"]
 homepage = "https://github.com/Encapsia/encapsia-api"
-
 
 [tool.poetry.dependencies]
 python = "^3.8"
@@ -24,6 +23,7 @@ requests-mock = "^1.10.0"
 ruff = "^0.0.270"
 types-toml = "^0.10.8.6"
 types-requests = "^2.31.0.0"
+
 
 [build-system]
 requires = ["poetry>=1.0.5"]
