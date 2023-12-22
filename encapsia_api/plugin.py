@@ -37,7 +37,7 @@ class PluginMaker:
         return self.directory
 
     def _add_manifest(self, **kwargs):
-        data = dict(kwargs)
+        data = kwargs.copy()
         # All values are passed through to the manifest but
         # ensure certain values are set and supply some defaults.
         data.update(
