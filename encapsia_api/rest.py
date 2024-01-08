@@ -1,4 +1,3 @@
-import cgi
 import collections
 import csv
 import io
@@ -33,15 +32,12 @@ from encapsia_api.resilient_request import (
 __all__ = ["EncapsiaApi", "EncapsiaApiTimeoutError", "FileDownloadResponse"]
 
 
-def _parse_http_header(
-    response: requests.Response, header: str
-) -> typing.Tuple[typing.Optional[str], dict]:
+def _get_content_type_lower(response: requests.Response) -> typing.Optional[str]:
     try:
-        content_type, content_options = cgi.parse_header(response.headers[header])
+        content_type = response.headers["Content-type"]
+        return content_type.split(";")[0].strip().lower()
     except KeyError:
-        return None, {}
-    else:
-        return content_type.lower(), content_options
+        return None
 
 
 class EncapsiaApiTimeoutError(encapsia_api.EncapsiaApiError):
@@ -468,7 +464,7 @@ class TaskMixin:
             with self.call_api(
                 "get", ("tasks", namespace, task_id), stream=True
             ) as response:
-                content_type, _ = _parse_http_header(response, "Content-type")
+                content_type = _get_content_type_lower(response)
                 if content_type == "application/json":
                     reply = response.json()
                     if reply.get("status") != "ok":
@@ -680,7 +676,7 @@ class ViewMixin:
             stream_response_to_file(response, filename)
             return FileDownloadResponse(filename, response.headers.get("Content-type"))
         else:
-            content_type, _ = _parse_http_header(response, "Content-type")
+            content_type = _get_content_type_lower(response)
             if content_type == "application/json":
                 return response.json()
             elif typed_csv and content_type == "text/csv":

@@ -10,7 +10,7 @@ __all__ = ["CredentialsStore", "discover_credentials"]
 
 
 class CredentialsStore:
-    CREDENTIALS_STORE = Path().home() / ".encapsia" / "credentials.toml"
+    CREDENTIALS_STORE = Path.home() / ".encapsia" / "credentials.toml"
 
     def __init__(self):
         # Create directory and file if they don't exist aleady

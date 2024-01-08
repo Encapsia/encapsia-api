@@ -102,8 +102,7 @@ class PackageMaker:
         filename = self.directory / name
         filename.parent.mkdir(parents=True, exist_ok=True)
         with filename.open("wb") as f:
-            for data in iterable:
-                f.write(data)
+            f.writelines(iterable)
 
     def add_file_from_string(self, name: str, data: str):
         """Add a file of given name from string data."""

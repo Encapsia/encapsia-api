@@ -1,5 +1,5 @@
 #: Keep in sync with git tag and package version in pyproject.toml.
-__version__ = "0.4.4"
+__version__ = "0.4.5"
 
 
 class EncapsiaApiError(RuntimeError):
