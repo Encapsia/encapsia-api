@@ -91,7 +91,7 @@ def untar_to_dir(filename, target_dir=None, cleanup=True):
     if target_dir:
         try:
             tar = tarfile.open(filename)
-            tar.extractall(target_dir)
+            tar.extractall(target_dir)  # noqa: S202
             tar.close()
             yield target_dir
         finally:
@@ -100,6 +100,6 @@ def untar_to_dir(filename, target_dir=None, cleanup=True):
     else:
         with make_temp_dir_path(cleanup=cleanup) as directory:
             tar = tarfile.open(filename)
-            tar.extractall(directory)
+            tar.extractall(directory)  # noqa: S202
             tar.close()
             yield directory

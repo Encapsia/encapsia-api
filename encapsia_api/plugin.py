@@ -20,7 +20,6 @@ def _create_targz_as_bytes(directory):
 
 
 class PluginMaker:
-
     """Generic maker of plugins, intended to be used as a context manager."""
 
     def __init__(self, name, directory=None, **kwargs):

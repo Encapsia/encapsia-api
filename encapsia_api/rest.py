@@ -347,16 +347,18 @@ class FileDownloadResponse:
 
 
 class Boolean:
-    BOOLEAN_LOOKUP = {
-        "yes": True,
-        "y": True,
-        "t": True,
-        "true": True,
-        "no": False,
-        "n": False,
-        "f": False,
-        "false": False,
-    }
+    BOOLEAN_LOOKUP = frozenset(
+        {
+            "yes": True,
+            "y": True,
+            "t": True,
+            "true": True,
+            "no": False,
+            "n": False,
+            "f": False,
+            "false": False,
+        }
+    )
 
     @classmethod
     def from_str(cls, value):
@@ -381,13 +383,15 @@ class Boolean:
 class CsvResponse:
     """Iterable returned from a task or view when responding with non-downloaded CSV."""
 
-    TYPE_CASTERS = {
-        "json": json.loads,
-        "integer": int,
-        "float": float,
-        "datetime": lambda x: arrow.get(x).datetime,
-        "boolean": Boolean().from_str,
-    }
+    TYPE_CASTERS = frozenset(
+        {
+            "json": json.loads,
+            "integer": int,
+            "float": float,
+            "datetime": lambda x: arrow.get(x).datetime,
+            "boolean": Boolean().from_str,
+        }
+    )
 
     def __init__(self, line_iterable):
         self.reader = csv.reader(line_iterable)
@@ -965,5 +969,4 @@ class EncapsiaApi(
     SystemUserMixin,
     SuperUserMixin,
 ):
-
     """REST API access to an Encapsia server."""

@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
       - id: check-toml
       - id: check-yaml
@@ -25,19 +25,19 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/ambv/black
-    rev: 23.3.0
+    rev: 24.3.0
     hooks:
       - id: black
         types: [python]
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
     # Ruff version.
-    rev: 'v0.0.270'
+    rev: 'v0.3.4'
     hooks:
       - id: ruff
 
   - repo: https://github.com/python-poetry/poetry
-    rev: "1.5.0"
+    rev: "1.8.0"
     hooks:
       - id: poetry-check
         name: poetry-check
@@ -65,7 +65,7 @@ repos:
         args: ["-f", "requirements.txt", "-o", "requirements.txt"]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v1.3.0'  # Use the sha / tag you want to point at
+    rev: 'v1.9.0'  # Use the sha / tag you want to point at
     hooks:
     -   id: mypy
         additional_dependencies: ["types-toml", "types-urllib3", "types-requests"]

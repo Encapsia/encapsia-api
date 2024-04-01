@@ -5,6 +5,7 @@
 *~
 ._*
 .~c9*
+.dir-locals.el
 build/
 dist/
 *.egg-info/

@@ -46,7 +46,6 @@ def extract_manifest(filename: pathlib.Path, manifest_name: str = "package.toml"
 
 
 class PackageMaker:
-
     """Generic maker of packages, intended to be used as a context manager."""
 
     def __init__(self, package_format: str, manifest_fields: dict, temp_dir=None):

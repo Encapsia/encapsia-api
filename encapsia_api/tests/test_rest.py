@@ -1,4 +1,5 @@
 import collections
+import typing
 import unittest
 import unittest.mock
 
@@ -126,7 +127,7 @@ class TestHostProperty(unittest.TestCase):
 class TestResilientRestAPI(unittest.TestCase):
     API_URL = "https://localhost.icethree.com"
     TEST_URL = "https://localhost.icethree.com/v1/whoami"
-    RESPONSE = {
+    RESPONSE: typing.ClassVar[typing.Dict[str, typing.Any]] = {
         "status": "ok",
         "result": {
             "id": 1,

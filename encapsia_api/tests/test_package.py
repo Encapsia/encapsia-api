@@ -1,4 +1,5 @@
 import tarfile
+import typing
 
 import pytest
 
@@ -33,7 +34,7 @@ class TestMakeValidName:
 
 
 class TestPackageMaker:
-    MANIFEST_FIELDS = {
+    MANIFEST_FIELDS: typing.ClassVar[typing.Dict[str, typing.Any]] = {
         "type": {"name": "test-type", "format": "1.0", "description": "whatever"},
         "instance": {
             "name": "test instance",
