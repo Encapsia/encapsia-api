@@ -5,8 +5,6 @@
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/encapsia-api)
 
-[![Known Vulnerabilities](https://snyk.io/test/github/encapsia/encapsia-api/badge.svg?targetFile=requirements.txt)](https://snyk.io/test/github/encapsia/encapsia-api?targetFile=requirements.txt)
-
 
 REST API for working with [Encapsia](https://www.encapsia.com).
 
