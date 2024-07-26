@@ -16,13 +16,13 @@ toml = ">=0.10"
 arrow = ">=1.2.0"
 
 [tool.poetry.group.dev.dependencies]
-black = "^23.3.0"
-pytest = "^7.3.1"
-mypy = "^1.9.0"
-requests-mock = "^1.10.0"
-ruff = "^0.3.4"
-types-toml = "^0.10.8.6"
-types-requests = "^2.31.0.20240311"
+black = "^24.4.2"
+pytest = "^8.3.2"
+mypy = "^1.11.0"
+requests-mock = "^1.12.1"
+ruff = "^0.5.5"
+types-toml = "^0.10.8.20240310"
+types-requests = "^2.32.0.20240712"
 
 
 [build-system]

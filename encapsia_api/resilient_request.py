@@ -35,10 +35,9 @@ def _should_retry(result, is_idempotent: bool) -> bool:
             return is_idempotent
         if result.status_code in RECOVERABLE_ERROR_CODES:
             return True
-        return False
-    if isinstance(result, (ConnectTimeout, ConnectionError)):
+    elif isinstance(result, (ConnectTimeout, ConnectionError)):
         return True
-    if isinstance(result, Timeout):
+    elif isinstance(result, Timeout):
         return is_idempotent
     return False
 

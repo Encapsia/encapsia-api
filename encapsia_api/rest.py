@@ -729,8 +729,8 @@ class DbCtlMixin:
         url = "/".join([self.url, self.version, "dbctl/data", handle])
         with download_to_file(
             url, self.token, target_file=filename, cleanup=False
-        ) as filename:
-            return filename
+        ) as download_filename:
+            return download_filename
 
     def dbctl_upload_data(self, filename):
         """Upload data from given filename.
@@ -780,8 +780,8 @@ class MiscMixin:
         with download_to_file(url, self.token) as tmp_filename, untar_to_dir(
             tmp_filename
         ) as tmp_dir:
-            proc = subprocess.run(
-                [  # noqa: S603
+            proc = subprocess.run(  # noqa: S603
+                [
                     sys.executable,
                     "-m",
                     "pip",
